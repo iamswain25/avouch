@@ -12,6 +12,14 @@
     <xhtml:link rel="alternate" hreflang="en" href="https://avouchprotocol.com/en/"/>
     <priority>1.0</priority>
   </url>
-  <url><loc>https://avouchprotocol.com/ko/whitepaper.html</loc><priority>0.8</priority></url>
-  <url><loc>https://avouchprotocol.com/en/whitepaper.html</loc><priority>0.8</priority></url>
+  <url>
+    <loc>https://avouchprotocol.com/ko/whitepaper</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://avouchprotocol.com/en/whitepaper"/>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://avouchprotocol.com/en/whitepaper</loc>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://avouchprotocol.com/ko/whitepaper"/>
+    <priority>0.8</priority>
+  </url>
 </urlset>

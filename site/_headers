@@ -1,0 +1,23 @@
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: SAMEORIGIN
+
+/index.html
+  Cache-Control: no-cache
+
+/ko/
+  Cache-Control: no-cache
+/ko/index.html
+  Cache-Control: no-cache
+/ko/whitepaper.html
+  Cache-Control: no-cache
+/en/
+  Cache-Control: no-cache
+/en/index.html
+  Cache-Control: no-cache
+/en/whitepaper.html
+  Cache-Control: no-cache
+
+/assets/*
+  Cache-Control: public, max-age=604800, immutable

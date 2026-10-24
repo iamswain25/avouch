@@ -1,67 +1,78 @@
-# Avouch — 도메인 연결과 배포
+# Avouch — 배포 (Cloudflare Pages)
 
 도메인: `avouchprotocol.com` (Dynadot 등록 완료)
-사이트 구조: `/ko/`, `/en/` 서브패스 + 루트 로케일 라우팅
+호스팅: Cloudflare Pages (정적) + Pages Function 1개(로케일 라우팅)
+사이트 구조: `/ko/`, `/en/` 서브패스, 루트 `/`는 언어 분기
 
-## 1. Dynadot DNS
+## 1. Cloudflare로 네임서버 위임
 
-Dynadot → My Domains → `avouchprotocol.com` → DNS Settings
+Pages 커스텀 도메인은 해당 존이 Cloudflare에 있어야 한다.
 
-가장 단순한 구성(A 레코드):
+1. Cloudflare 대시보드 → Add a site → `avouchprotocol.com` (Free)
+2. 표시되는 네임서버 2개를 Dynadot → My Domains → avouchprotocol.com → Name Servers 에서 교체
+3. 전파 확인(보통 수 분~수 시간). Cloudflare가 Active 되면 다음 단계
 
-| 타입 | 호스트 | 값 | TTL |
-| --- | --- | --- | --- |
-| A | `@` (빈 값) | 서버 공인 IP | 300 |
-| A | `www` | 서버 공인 IP | 300 |
+## 2. Pages 프로젝트 (Git 연동 권장)
 
-또는 `www`를 CNAME으로 `avouchprotocol.com`에 걸어도 된다.
+Cloudflare → Workers & Pages → Create → Pages → Connect to Git → 저장소 `avouch` 선택
 
-Cloudflare를 쓸 경우: Dynadot에서 네임서버를 Cloudflare NS 2개로 위임 → Cloudflare에서 위 레코드를 만들고 프록시(주황 구름)를 켠다. 이때 오리진은 8787을 외부에 열지 말고 `127.0.0.1:8787:80`으로 바인딩한다.
+| 설정 | 값 |
+| --- | --- |
+| Framework preset | None |
+| Build command | (비움) — 생성된 HTML이 저장소에 커밋되어 있다 |
+| Build output directory | `site` |
+| Root directory | 저장소 루트 (functions/ 를 자동 인식) |
 
-## 2. TLS
+`functions/` 디렉터리가 루트에 있으면 Pages Functions로 배포된다. 라우팅은 `site/_routes.json`이 `/`만 함수로 보내고 나머지는 정적 파일로 처리한다.
 
-오리진 앞에 Caddy를 두는 방식이 가장 짧다.
+빌드 단계에서 백서를 생성하고 싶으면 Build command를 `python3 -m pip install markdown && python3 scripts/build_whitepaper.py`로 두고 환경변수 `PYTHON_VERSION=3.12`를 넣는다. 실패 시 (비움)으로 되돌리면 된다 — 산출물이 커밋되어 있기 때문이다.
 
-    avouchprotocol.com, www.avouchprotocol.com {
-        reverse_proxy 127.0.0.1:8787
-    }
+## 3. 직접 업로드 (Git 없이)
 
-Cloudflare 프록시를 쓰면 SSL 모드를 Full (strict)로 두고, 오리진에는 Caddy 또는 Cloudflare Origin Certificate를 설치한다. Flexible은 리다이렉트 루프의 원인이 되므로 쓰지 않는다.
+    cd ~/workspace/avouch
+    npx wrangler login
+    npx wrangler pages deploy site --project-name avouch
 
-## 3. 프록시 헤더 (locale 라우팅이 깨지지 않게)
+`wrangler pages deploy`는 현재 디렉터리의 `functions/`를 함께 올린다. 프로젝트 루트에서 실행할 것.
 
-nginx는 `Accept-Language`와 `lang` 쿠키를 읽어 `/`를 302로 분기한다. 프록시가 헤더를 지우면 항상 기본값(en)으로 떨어진다.
+## 4. 커스텀 도메인
 
-- Caddy: 기본적으로 Host와 Accept-Language를 그대로 전달한다.
-- Cloudflare: `Accept-Language`는 전달되지만, 캐시 규칙이 `/`를 캐시하면 안 된다(`Cache-Control: no-store`가 이미 붙어 있다). Cloudflare Cache Rule에서 `/`를 bypass로 명시하는 편이 안전하다.
+Pages → 프로젝트 → Custom domains → `avouchprotocol.com` 추가 (apex는 자동으로 CNAME flattening). `www.avouchprotocol.com`도 추가한 뒤, www → apex 301을 원하면 Cloudflare Rules → Redirect Rules에서:
 
-## 4. go-live 체크리스트
+    호스트가 www.avouchprotocol.com 이면 301 → https://avouchprotocol.com/$1
 
-    docker compose ps                                  # healthy
-    curl -I https://avouchprotocol.com/                # 302 -> /en/ 또는 /ko/
-    curl -I -H 'Accept-Language: ko-KR' https://avouchprotocol.com/   # 302 -> /ko/
+## 5. 로케일 라우팅 (중요)
+
+- `functions/index.js`가 `/`만 처리한다: cookie `lang` → Accept-Language(q 순) → 기본 `en`. `Location: /ko/` 또는 `/en/`, `Vary: Accept-Language, Cookie`, `Cache-Control: no-store`.
+- 정적 파일은 Functions를 타지 않는다(`_routes.json`).
+- Cloudflare Pages는 `.html` 요청을 확장자 없는 URL로 308 리다이렉트한다. 그래서 canonical은 `/ko/whitepaper`(확장자 없음)이고, 사이트 내 링크·hreflang·sitemap을 모두 그 형태로 맞춰두었다. 파일명은 `whitepaper.html` 그대로다.
+- nginx(로컬/도커)도 같은 동작이 되도록 `try_files $uri $uri.html $uri/`를 넣어 두었다. 두 호스트의 URL이 동일하다.
+
+## 6. 헤더·리다이렉트·SEO
+
+- `site/_headers`: 보안 헤더, HTML `no-cache`, `/assets/*` 7일 immutable
+- `site/_redirects`: `/ko` `/en` → 슬래시 301
+- `site/_routes.json`: 함수 호출 범위 제한
+- hreflang(`ko`, `en`, `x-default`), `sitemap.xml`, `robots.txt` 포함. 루트 `/`는 라우터라 `noindex`
+- Search Console에 `avouchprotocol.com` 등록 후 `https://avouchprotocol.com/sitemap.xml` 제출
+
+## 7. go-live 체크리스트
+
+    curl -I https://avouchprotocol.com/                                  # 302 -> /en/ 또는 /ko/
+    curl -I -H 'Accept-Language: ko-KR' https://avouchprotocol.com/      # 302 -> /ko/
     curl -s -o /dev/null -w '%{http_code}\n' https://avouchprotocol.com/ko/
-    curl -s -o /dev/null -w '%{http_code}\n' https://avouchprotocol.com/en/whitepaper.html
+    curl -s -o /dev/null -w '%{http_code}\n' https://avouchprotocol.com/ko/whitepaper
+    curl -s -o /dev/null -w '%{http_code}\n' https://avouchprotocol.com/en/whitepaper
     curl -s https://avouchprotocol.com/robots.txt
-    www -> apex 301 확인, http -> https 301 확인
+    curl -sI https://avouchprotocol.com/assets/style.css | grep -i cache-control
+    www -> apex 301 확인
     브라우저 언어를 영어/한국어로 바꿔 루트 진입 확인
 
-## 5. nginx 설정 메모
+## 8. 도커 (셀프호스트 대안)
 
-- `server_name avouchprotocol.com www.avouchprotocol.com _;` — 단일 server 블록이라 unmatched Host도 이 블록이 받는다(localhost 테스트 유지).
-- `absolute_redirect off;` — TLS 종단 프록시 뒤에서 `Location: /ko/` 같은 상대 경로가 나가야 http/https 루프가 없다.
-- `map` 두 개는 `conf.d/default.conf`의 server 블록 밖(http 컨텍스트)에 있어야 한다.
+VPS에 올릴 경우를 위해 같은 산출물을 nginx 이미지로도 서빙한다.
 
-## 6. 배포 파이프라인(권장)
+    docker build -q -t avouch-site:dev .
+    docker compose up -d --force-recreate     # http://localhost:8787
 
-    uv run --with markdown python scripts/build_whitepaper.py --sync
-    docker build -t avouch-site:$(git rev-parse --short HEAD) .
-    docker tag avouch-site:$(git rev-parse --short HEAD) avouch-site:latest
-    docker compose up -d --force-recreate
-
-서버에서는 `docker save | ssh docker load` 또는 레지스트리 push/pull. 태그는 git sha로 고정한다.
-
-## 7. 검색엔진
-
-- `/ko/`, `/en/` 모두 hreflang(`ko`, `en`, `x-default`)을 갖는다. 루트 `/`는 라우터라 `noindex`.
-- `sitemap.xml`, `robots.txt` 포함. Search Console에 `avouchprotocol.com` 등록 후 sitemap 제출.
+`nginx.conf`는 Pages와 동일한 URL 체계(확장자 없는 whitepaper, `/` 로케일 302)를 흉내 낸다. 프록시 뒤에서는 `absolute_redirect off` 덕분에 `Location`이 상대 경로로 나간다.

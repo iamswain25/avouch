@@ -33,7 +33,7 @@ LANGS = {
         "title": "Avouch 백서 — 보증이 편집권이 되는 게시 프로토콜",
         "src": ROOT / "content" / "ko" / "whitepaper.md",
         "out": ROOT / "site" / "ko" / "whitepaper.html",
-        "nav": {"index.html": "홈", "index.html#how": "작동", "index.html#econ": "경제", "index.html#status": "상태"},
+        "nav": {"./": "홈", "#how": "작동", "#econ": "경제", "#status": "상태"},
         "other": ("../en/", "EN"),
         "master_note": "마스터: ~/Documents/crypto/research/avouch-whitepaper-2026-10.md",
         "home": "← 홈",
@@ -43,7 +43,7 @@ LANGS = {
         "title": "Avouch Whitepaper — a posting board where the bond is the editorial right",
         "src": ROOT / "content" / "en" / "whitepaper.md",
         "out": ROOT / "site" / "en" / "whitepaper.html",
-        "nav": {"index.html": "Home", "index.html#how": "How", "index.html#econ": "Economics", "index.html#status": "Status"},
+        "nav": {"./": "Home", "#how": "How", "#econ": "Economics", "#status": "Status"},
         "other": ("../ko/", "KO"),
         "master_note": "Korean master (longer, authoritative): avouch-whitepaper-2026-10.md",
         "home": "← Home",
@@ -56,16 +56,16 @@ PAGE = """<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title}</title>
-<link rel="alternate" hreflang="ko" href="/ko/whitepaper.html">
-<link rel="alternate" hreflang="en" href="/en/whitepaper.html">
-<link rel="alternate" hreflang="x-default" href="/en/whitepaper.html">
+<link rel="alternate" hreflang="ko" href="/ko/whitepaper">
+<link rel="alternate" hreflang="en" href="/en/whitepaper">
+<link rel="alternate" hreflang="x-default" href="/en/whitepaper">
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/style.css?v=20261024b">
 </head>
 <body>
 <header class="nav">
   <div class="wrap">
-    <div class="brand"><a href="index.html" style="color:inherit">AVOUCH<span>.</span></a></div>
+    <div class="brand"><a href="./" style="color:inherit">AVOUCH<span>.</span></a></div>
     <nav class="nav-links">
 {nav_links}
       <a href="{other_href}" onclick="document.cookie='lang={other_code};path=/;max-age=31536000';localStorage.setItem('avouch_lang','{other_code}')">{other_label}</a>
@@ -80,7 +80,7 @@ PAGE = """<!doctype html>
 <footer>
   <div class="wrap">
     <div class="backlink">{master_note}</div>
-    <div><a href="index.html">{home}</a></div>
+    <div><a href="./">{home}</a></div>
   </div>
 </footer>
 </body>
