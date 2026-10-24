@@ -44,6 +44,7 @@ WIKILINK = re.compile(r"\[\[([^\]|]+)(?:\|[^\]]+)?\]\]")
 LANGS = {
     "ko": {
         "html_lang": "ko",
+        "lang_path": "ko",
         "title": "Avouch 백서 — 보증이 편집권이 되는 게시 프로토콜",
         "src": ROOT / "content" / "ko" / "whitepaper.md",
         "out": ROOT / "site" / "ko" / "whitepaper.html",
@@ -54,6 +55,7 @@ LANGS = {
     },
     "en": {
         "html_lang": "en",
+        "lang_path": "en",
         "title": "Avouch Whitepaper — a posting board where the bond is the editorial right",
         "src": ROOT / "content" / "en" / "whitepaper.md",
         "out": ROOT / "site" / "en" / "whitepaper.html",
@@ -70,6 +72,8 @@ PAGE = """<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title}</title>
+<link rel="canonical" href="https://avouchprotocol.com/{lang_path}/whitepaper">
+<meta property="og:type" content="article">
 <link rel="alternate" hreflang="ko" href="/ko/whitepaper">
 <link rel="alternate" hreflang="en" href="/en/whitepaper">
 <link rel="alternate" hreflang="x-default" href="/en/whitepaper">
@@ -129,6 +133,7 @@ def build(code: str) -> None:
 
     page = PAGE.format(
         html_lang=cfg["html_lang"],
+        lang_path=cfg["lang_path"],
         title=cfg["title"],
         nav_links=nav_links,
         other_href=other_href,
