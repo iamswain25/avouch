@@ -7,63 +7,63 @@ main:
     bytecblock "escrowed" "p" "min_bond" "arbiter" "treasury" "challenger_bond_bps" "challenger_share_bps" "forfeit_bps" "resolve_window" 0x00 0x151f7c75
     txn ApplicationID
     bnz main_after_if_else@2
-    // src/post_bond_live.py:64
+    // src/post_bond_live.py:68
     // self.arbiter = GlobalState(arc4.Address())
     bytec_3 // "arbiter"
     global ZeroAddress
     app_global_put
-    // src/post_bond_live.py:65
+    // src/post_bond_live.py:69
     // self.treasury = GlobalState(arc4.Address())
     bytec 4 // "treasury"
     global ZeroAddress
     app_global_put
-    // src/post_bond_live.py:66
+    // src/post_bond_live.py:70
     // self.min_bond = GlobalState(UInt64(0))
     bytec_2 // "min_bond"
     intc_0 // 0
     app_global_put
-    // src/post_bond_live.py:67
+    // src/post_bond_live.py:71
     // self.challenger_bond_bps = GlobalState(UInt64(10000))
     bytec 5 // "challenger_bond_bps"
     intc_3 // 10000
     app_global_put
-    // src/post_bond_live.py:68
+    // src/post_bond_live.py:72
     // self.challenger_share_bps = GlobalState(UInt64(5000))
     bytec 6 // "challenger_share_bps"
     pushint 5000
     app_global_put
-    // src/post_bond_live.py:69-70
+    // src/post_bond_live.py:73-74
     // # share of the bond forfeited on a guilty ruling (partial: the post survives)
     // self.forfeit_bps = GlobalState(UInt64(5000))
     bytec 7 // "forfeit_bps"
     pushint 5000
     app_global_put
-    // src/post_bond_live.py:71
+    // src/post_bond_live.py:75
     // self.resolve_window = GlobalState(UInt64(0))
     bytec 8 // "resolve_window"
     intc_0 // 0
     app_global_put
-    // src/post_bond_live.py:72
+    // src/post_bond_live.py:76
     // self.escrowed = GlobalState(UInt64(0))
     bytec_0 // "escrowed"
     intc_0 // 0
     app_global_put
 
 main_after_if_else@2:
-    // src/post_bond_live.py:62
+    // src/post_bond_live.py:66
     // class PostBondLive(ARC4Contract):
     txn OnCompletion
     !
     assert
     txn ApplicationID
     bz main_create_NoOp@13
-    pushbytess 0x9cbf6358 0x3feb3027 0xd501f739 0xcb7c6df2 0xeb859302 0xad2551ac 0xde81fa73 // method "post_bond(pay,uint64,byte[])void", method "challenge(pay,uint64)void", method "settle(uint64,bool)void", method "close(uint64)void", method "release_stale(uint64)void", method "get_post(uint64)(address,address,byte[],uint64,uint64,uint64,uint8,uint64,uint64)", method "escrow_total()uint64"
+    pushbytess 0x9cbf6358 0x3feb3027 0xd501f739 0xe3aeb25c 0xeb859302 0xdf35dfe8 0xde81fa73 // method "post_bond(pay,uint64,byte[])void", method "challenge(pay,uint64)void", method "settle(uint64,bool)void", method "withdraw(uint64,uint64)void", method "release_stale(uint64)void", method "get_post(uint64)(address,address,byte[],uint64,uint64,uint64,uint64,uint8,uint64,uint64)", method "escrow_total()uint64"
     txna ApplicationArgs 0
-    match post_bond challenge settle close release_stale get_post escrow_total
+    match post_bond challenge settle withdraw release_stale get_post escrow_total
     err
 
 main_create_NoOp@13:
-    // src/post_bond_live.py:62
+    // src/post_bond_live.py:66
     // class PostBondLive(ARC4Contract):
     pushbytes 0x9b157dc1 // method "create(address,address,uint64,uint64,uint64,uint64,uint64)void"
     txna ApplicationArgs 0
@@ -73,7 +73,7 @@ main_create_NoOp@13:
 
 // post_bond_live.PostBondLive.create[routing]() -> void:
 create:
-    // src/post_bond_live.py:77
+    // src/post_bond_live.py:81
     // @arc4.abimethod(create="require")
     txna ApplicationArgs 1
     dup
@@ -130,23 +130,23 @@ create:
     assert // invalid number of bytes for arc4.uint64
     btoi
     cover 4
-    // src/post_bond_live.py:88
+    // src/post_bond_live.py:92
     // assert min_bond > UInt64(0), "min_bond"
     uncover 3
     assert // min_bond
-    // src/post_bond_live.py:89
+    // src/post_bond_live.py:93
     // assert challenger_share_bps <= UInt64(10000), "share_bps"
     swap
     intc_3 // 10000
     <=
     assert // share_bps
-    // src/post_bond_live.py:90
+    // src/post_bond_live.py:94
     // assert challenger_bond_bps <= UInt64(10000), "bond_bps"
     swap
     intc_3 // 10000
     <=
     assert // bond_bps
-    // src/post_bond_live.py:91
+    // src/post_bond_live.py:95
     // assert forfeit_bps > UInt64(0) and forfeit_bps <= UInt64(10000), "forfeit_bps"
     bz create_bool_false@4
     dig 1
@@ -156,49 +156,49 @@ create:
     intc_1 // 1
 
 create_bool_merge@5:
-    // src/post_bond_live.py:91
+    // src/post_bond_live.py:95
     // assert forfeit_bps > UInt64(0) and forfeit_bps <= UInt64(10000), "forfeit_bps"
     assert // forfeit_bps
-    // src/post_bond_live.py:92
+    // src/post_bond_live.py:96
     // assert resolve_window > UInt64(0), "resolve_window"
     dup
     assert // resolve_window
-    // src/post_bond_live.py:93
+    // src/post_bond_live.py:97
     // self.arbiter.value = arbiter
     bytec_3 // "arbiter"
     uncover 7
     app_global_put
-    // src/post_bond_live.py:94
+    // src/post_bond_live.py:98
     // self.treasury.value = treasury
     bytec 4 // "treasury"
     uncover 6
     app_global_put
-    // src/post_bond_live.py:95
+    // src/post_bond_live.py:99
     // self.min_bond.value = min_bond
     bytec_2 // "min_bond"
     uncover 5
     app_global_put
-    // src/post_bond_live.py:96
+    // src/post_bond_live.py:100
     // self.challenger_bond_bps.value = challenger_bond_bps
     bytec 5 // "challenger_bond_bps"
     uncover 4
     app_global_put
-    // src/post_bond_live.py:97
+    // src/post_bond_live.py:101
     // self.challenger_share_bps.value = challenger_share_bps
     bytec 6 // "challenger_share_bps"
     uncover 3
     app_global_put
-    // src/post_bond_live.py:98
+    // src/post_bond_live.py:102
     // self.forfeit_bps.value = forfeit_bps
     bytec 7 // "forfeit_bps"
     uncover 2
     app_global_put
-    // src/post_bond_live.py:99
+    // src/post_bond_live.py:103
     // self.resolve_window.value = resolve_window
     bytec 8 // "resolve_window"
     swap
     app_global_put
-    // src/post_bond_live.py:77
+    // src/post_bond_live.py:81
     // @arc4.abimethod(create="require")
     intc_1 // 1
     return
@@ -210,7 +210,7 @@ create_bool_false@4:
 
 // post_bond_live.PostBondLive.post_bond[routing]() -> void:
 post_bond:
-    // src/post_bond_live.py:103
+    // src/post_bond_live.py:107
     // @arc4.abimethod
     txn GroupIndex
     intc_1 // 1
@@ -237,7 +237,7 @@ post_bond:
     len
     ==
     assert // invalid number of bytes for arc4.dynamic_array<arc4.uint8>
-    // src/post_bond_live.py:110
+    // src/post_bond_live.py:114
     // assert post_id not in self.posts, "post exists"
     bytec_1 // "p"
     uncover 3
@@ -247,35 +247,35 @@ post_bond:
     bury 1
     !
     assert // post exists
-    // src/post_bond_live.py:111
+    // src/post_bond_live.py:115
     // assert bond_txn.sender == Txn.sender, "bond sender"
     dig 3
     gtxns Sender
     txn Sender
     ==
     assert // bond sender
-    // src/post_bond_live.py:112
+    // src/post_bond_live.py:116
     // assert bond_txn.receiver == Global.current_application_address, "bond receiver"
     dig 3
     gtxns Receiver
     global CurrentApplicationAddress
     ==
     assert // bond receiver
-    // src/post_bond_live.py:113
+    // src/post_bond_live.py:117
     // assert bond_txn.rekey_to == Global.zero_address, "rekey"
     dig 3
     gtxns RekeyTo
     global ZeroAddress
     ==
     assert // rekey
-    // src/post_bond_live.py:114
+    // src/post_bond_live.py:118
     // assert bond_txn.close_remainder_to == Global.zero_address, "close"
     dig 3
     gtxns CloseRemainderTo
     global ZeroAddress
     ==
     assert // close
-    // src/post_bond_live.py:115
+    // src/post_bond_live.py:119
     // assert bond_txn.amount >= self.min_bond.value, "bond too small"
     uncover 3
     gtxns Amount
@@ -286,13 +286,13 @@ post_bond:
     dig 1
     <=
     assert // bond too small
-    // src/post_bond_live.py:116
+    // src/post_bond_live.py:120
     // assert content_hash.length > UInt64(16), "content hash"
     uncover 2
     pushint 16
     >
     assert // content hash
-    // src/post_bond_live.py:118
+    // src/post_bond_live.py:122
     // self.escrowed.value += bond_txn.amount
     intc_0 // 0
     bytec_0 // "escrowed"
@@ -303,27 +303,28 @@ post_bond:
     bytec_0 // "escrowed"
     swap
     app_global_put
-    // src/post_bond_live.py:120
+    // src/post_bond_live.py:124
     // author=arc4.Address.from_bytes(Txn.sender.bytes),
     txn Sender
-    // src/post_bond_live.py:121
+    // src/post_bond_live.py:125
     // challenger=arc4.Address(),
     global ZeroAddress
-    // src/post_bond_live.py:123
+    // src/post_bond_live.py:127
     // bond=arc4.UInt64(bond_txn.amount),
     uncover 2
     itob
-    // src/post_bond_live.py:124
+    // src/post_bond_live.py:128
     // challenger_bond=arc4.UInt64(0),
     intc_0 // 0
     itob
-    // src/post_bond_live.py:119-129
+    // src/post_bond_live.py:123-134
     // self.posts[post_id] = Post(
     //     author=arc4.Address.from_bytes(Txn.sender.bytes),
     //     challenger=arc4.Address(),
     //     content_hash=content_hash.copy(),
     //     bond=arc4.UInt64(bond_txn.amount),
     //     challenger_bond=arc4.UInt64(0),
+    //     bond_peak=arc4.UInt64(bond_txn.amount),
     //     resolve_deadline=arc4.UInt64(0),
     //     status=arc4.UInt8(OPEN),
     //     rulings=arc4.UInt64(0),
@@ -332,24 +333,27 @@ post_bond:
     uncover 3
     uncover 3
     concat
-    pushbytes 0x006b
+    pushbytes 0x0073
+    concat
+    dig 2
+    concat
+    dig 1
     concat
     uncover 2
     concat
     dig 1
     concat
-    dig 1
-    concat
-    // src/post_bond_live.py:126
+    // src/post_bond_live.py:131
     // status=arc4.UInt8(OPEN),
     bytec 9 // 0x00
-    // src/post_bond_live.py:119-129
+    // src/post_bond_live.py:123-134
     // self.posts[post_id] = Post(
     //     author=arc4.Address.from_bytes(Txn.sender.bytes),
     //     challenger=arc4.Address(),
     //     content_hash=content_hash.copy(),
     //     bond=arc4.UInt64(bond_txn.amount),
     //     challenger_bond=arc4.UInt64(0),
+    //     bond_peak=arc4.UInt64(bond_txn.amount),
     //     resolve_deadline=arc4.UInt64(0),
     //     status=arc4.UInt8(OPEN),
     //     rulings=arc4.UInt64(0),
@@ -366,7 +370,7 @@ post_bond:
     box_del
     pop
     box_put
-    // src/post_bond_live.py:103
+    // src/post_bond_live.py:107
     // @arc4.abimethod
     intc_1 // 1
     return
@@ -374,7 +378,7 @@ post_bond:
 
 // post_bond_live.PostBondLive.challenge[routing]() -> void:
 challenge:
-    // src/post_bond_live.py:131
+    // src/post_bond_live.py:136
     // @arc4.abimethod
     txn GroupIndex
     intc_1 // 1
@@ -390,7 +394,7 @@ challenge:
     intc_2 // 8
     ==
     assert // invalid number of bytes for arc4.uint64
-    // src/post_bond_live.py:137
+    // src/post_bond_live.py:142
     // post = self.posts[post_id].copy()
     bytec_1 // "p"
     swap
@@ -398,38 +402,38 @@ challenge:
     dup
     box_get
     assert // check self.posts entry exists
-    // src/post_bond_live.py:138-139
+    // src/post_bond_live.py:143-144
     // # no time check: a bonded post is always challengeable
     // assert post.status.native == UInt64(OPEN), "not open"
     dig 1
-    pushint 90
+    pushint 98
     intc_1 // 1
     box_extract // on error: index out of bounds
     btoi
     !
     assert // not open
-    // src/post_bond_live.py:140
+    // src/post_bond_live.py:145
     // assert challenge_txn.sender == Txn.sender, "challenge sender"
     dig 2
     gtxns Sender
     txn Sender
     ==
     assert // challenge sender
-    // src/post_bond_live.py:141
+    // src/post_bond_live.py:146
     // assert challenge_txn.receiver == Global.current_application_address, "challenge receiver"
     dig 2
     gtxns Receiver
     global CurrentApplicationAddress
     ==
     assert // challenge receiver
-    // src/post_bond_live.py:142
+    // src/post_bond_live.py:147
     // assert challenge_txn.rekey_to == Global.zero_address, "rekey"
     dig 2
     gtxns RekeyTo
     global ZeroAddress
     ==
     assert // rekey
-    // src/post_bond_live.py:144
+    // src/post_bond_live.py:149
     // required = post.bond.native * self.challenger_bond_bps.value // UInt64(10000)
     dig 1
     pushint 66
@@ -443,7 +447,7 @@ challenge:
     *
     intc_3 // 10000
     /
-    // src/post_bond_live.py:145
+    // src/post_bond_live.py:150
     // assert challenge_txn.amount >= required, "challenge bond too small"
     uncover 3
     gtxns Amount
@@ -451,7 +455,7 @@ challenge:
     uncover 2
     >=
     assert // challenge bond too small
-    // src/post_bond_live.py:147
+    // src/post_bond_live.py:152
     // self.escrowed.value += challenge_txn.amount
     intc_0 // 0
     bytec_0 // "escrowed"
@@ -462,18 +466,18 @@ challenge:
     bytec_0 // "escrowed"
     swap
     app_global_put
-    // src/post_bond_live.py:148
+    // src/post_bond_live.py:153
     // post.challenger = arc4.Address.from_bytes(Txn.sender.bytes)
     txn Sender
     uncover 2
     swap
     replace2 32
-    // src/post_bond_live.py:149
+    // src/post_bond_live.py:154
     // post.challenger_bond = arc4.UInt64(challenge_txn.amount)
     swap
     itob
     replace2 74
-    // src/post_bond_live.py:150
+    // src/post_bond_live.py:155
     // post.resolve_deadline = arc4.UInt64(Global.latest_timestamp + self.resolve_window.value)
     global LatestTimestamp
     intc_0 // 0
@@ -482,18 +486,18 @@ challenge:
     assert // check self.resolve_window exists
     +
     itob
-    replace2 82
-    // src/post_bond_live.py:151
+    replace2 90
+    // src/post_bond_live.py:156
     // post.status = arc4.UInt8(CHALLENGED)
     pushbytes 0x01
-    replace2 90
-    // src/post_bond_live.py:152
+    replace2 98
+    // src/post_bond_live.py:157
     // self.posts[post_id] = post.copy()
     dig 1
     box_del
     pop
     box_put
-    // src/post_bond_live.py:131
+    // src/post_bond_live.py:136
     // @arc4.abimethod
     intc_1 // 1
     return
@@ -501,7 +505,7 @@ challenge:
 
 // post_bond_live.PostBondLive.settle[routing]() -> void:
 settle:
-    // src/post_bond_live.py:156
+    // src/post_bond_live.py:161
     // @arc4.abimethod
     txna ApplicationArgs 1
     dup
@@ -515,7 +519,7 @@ settle:
     intc_1 // 1
     ==
     assert // invalid number of bytes for arc4.bool
-    // src/post_bond_live.py:158
+    // src/post_bond_live.py:163
     // post = self.posts[post_id].copy()
     bytec_1 // "p"
     uncover 2
@@ -525,7 +529,7 @@ settle:
     dup
     box_get
     assert // check self.posts entry exists
-    // src/post_bond_live.py:159
+    // src/post_bond_live.py:164
     // assert Txn.sender == self.arbiter.value.native, "arbiter only"
     txn Sender
     intc_0 // 0
@@ -534,17 +538,17 @@ settle:
     assert // check self.arbiter exists
     ==
     assert // arbiter only
-    // src/post_bond_live.py:160
+    // src/post_bond_live.py:165
     // assert post.status.native == UInt64(CHALLENGED), "not challenged"
     dig 1
-    pushint 90
+    pushint 98
     intc_1 // 1
     box_extract // on error: index out of bounds
     btoi
     intc_1 // 1
     ==
     assert // not challenged
-    // src/post_bond_live.py:162
+    // src/post_bond_live.py:167
     // challenger_bond = post.challenger_bond.native
     dig 1
     pushint 74
@@ -552,57 +556,73 @@ settle:
     box_extract // on error: index out of bounds
     btoi
     cover 3
-    // src/post_bond_live.py:163
+    // src/post_bond_live.py:168
     // challenger = post.challenger.native
     swap
     pushint 32
     dup
     box_extract // on error: index out of bounds
     cover 3
-    // src/post_bond_live.py:164
+    // src/post_bond_live.py:169
     // post.challenger = arc4.Address()
     global ZeroAddress
     replace2 32
-    // src/post_bond_live.py:165
+    // src/post_bond_live.py:170
     // post.challenger_bond = arc4.UInt64(0)
     intc_0 // 0
     itob
+    dup
+    cover 3
     swap
     dig 1
     replace2 74
-    // src/post_bond_live.py:166
+    // src/post_bond_live.py:171
     // post.resolve_deadline = arc4.UInt64(0)
     swap
-    replace2 82
-    // src/post_bond_live.py:167
+    replace2 90
+    // src/post_bond_live.py:172
     // post.rulings = arc4.UInt64(post.rulings.native + UInt64(1))
     dup
-    pushint 91
+    pushint 99
     extract_uint64
     intc_1 // 1
     +
     itob
-    replace2 91
+    replace2 99
     swap
-    // src/post_bond_live.py:169
+    // src/post_bond_live.py:174
     // if guilty.native:
     intc_0 // 0
     getbit
-    bz settle_else_body@3
-    // src/post_bond_live.py:170
-    // forfeit = post.bond.native * self.forfeit_bps.value // UInt64(10000)
-    dup
-    pushint 66
+    bz settle_else_body@6
+    // src/post_bond_live.py:175-176
+    // # computed on the peak bond so withdrawing to the floor does not cheapen the penalty
+    // nominal = post.bond_peak.native * self.forfeit_bps.value // UInt64(10000)
+    dupn 2
+    pushint 82
     extract_uint64
     intc_0 // 0
     bytec 7 // "forfeit_bps"
     app_global_get_ex
     assert // check self.forfeit_bps exists
-    dig 1
     *
     intc_3 // 10000
     /
-    // src/post_bond_live.py:171
+    dup
+    cover 3
+    // src/post_bond_live.py:177
+    // forfeit = nominal if nominal <= post.bond.native else post.bond.native
+    swap
+    pushint 66
+    extract_uint64
+    dup
+    cover 2
+    <=
+    bz settle_ternary_false@4
+    uncover 2
+
+settle_ternary_merge@5:
+    // src/post_bond_live.py:178
     // to_challenger = forfeit * self.challenger_share_bps.value // UInt64(10000)
     intc_0 // 0
     bytec 6 // "challenger_share_bps"
@@ -612,11 +632,11 @@ settle:
     *
     intc_3 // 10000
     /
-    // src/post_bond_live.py:172
+    // src/post_bond_live.py:179
     // to_treasury = forfeit - to_challenger
     dup2
     -
-    // src/post_bond_live.py:173
+    // src/post_bond_live.py:180
     // post.bond = arc4.UInt64(post.bond.native - forfeit)
     uncover 3
     dig 3
@@ -625,26 +645,26 @@ settle:
     uncover 4
     swap
     replace2 66
-    // src/post_bond_live.py:174
+    // src/post_bond_live.py:181
     // post.forfeited = arc4.UInt64(post.forfeited.native + forfeit)
     dup
-    pushint 99
+    pushint 107
     extract_uint64
     dig 4
     +
     itob
-    replace2 99
+    replace2 107
     cover 3
-    // src/post_bond_live.py:175
+    // src/post_bond_live.py:182
     // out = to_treasury + challenger_bond + to_challenger
     dup
-    uncover 5
+    uncover 6
     dup
     cover 2
     +
     dig 3
     +
-    // src/post_bond_live.py:176
+    // src/post_bond_live.py:183
     // self.escrowed.value -= challenger_bond + forfeit
     intc_0 // 0
     bytec_0 // "escrowed"
@@ -657,10 +677,10 @@ settle:
     bytec_0 // "escrowed"
     swap
     app_global_put
-    // src/post_bond_live.py:177
+    // src/post_bond_live.py:184
     // self._check_solvency(out)
     callsub _check_solvency
-    // src/post_bond_live.py:178
+    // src/post_bond_live.py:185
     // self._send(self.treasury.value.native, to_treasury)
     intc_0 // 0
     bytec 4 // "treasury"
@@ -668,15 +688,15 @@ settle:
     assert // check self.treasury exists
     uncover 2
     callsub _send
-    // src/post_bond_live.py:179
+    // src/post_bond_live.py:186
     // self._send(challenger, challenger_bond + to_challenger)
     +
-    uncover 2
+    uncover 3
     swap
     callsub _send
 
-settle_after_if_else@4:
-    // src/post_bond_live.py:185
+settle_after_if_else@7:
+    // src/post_bond_live.py:192
     // if post.bond.native >= self.min_bond.value:
     dup
     pushint 66
@@ -687,14 +707,15 @@ settle_after_if_else@4:
     app_global_get_ex
     assert // check self.min_bond exists
     >=
-    bz settle_else_body@6
+    bz settle_else_body@9
     pop
-    // src/post_bond_live.py:186-187
+    bury 1
+    // src/post_bond_live.py:193-194
     // # the post stays alive and stays challengeable
     // post.status = arc4.UInt8(OPEN)
     bytec 9 // 0x00
-    replace2 90
-    // src/post_bond_live.py:188
+    replace2 98
+    // src/post_bond_live.py:195
     // self.posts[post_id] = post.copy()
     swap
     dup
@@ -703,14 +724,14 @@ settle_after_if_else@4:
     swap
     box_put
 
-settle_after_if_else@7:
-    // src/post_bond_live.py:156
+settle_after_if_else@10:
+    // src/post_bond_live.py:161
     // @arc4.abimethod
     intc_1 // 1
     return
 
-settle_else_body@6:
-    // src/post_bond_live.py:192
+settle_else_body@9:
+    // src/post_bond_live.py:199
     // self.escrowed.value -= remainder
     intc_0 // 0
     bytec_0 // "escrowed"
@@ -721,55 +742,70 @@ settle_else_body@6:
     bytec_0 // "escrowed"
     swap
     app_global_put
-    // src/post_bond_live.py:193
-    // post.status = arc4.UInt8(CLOSED)
+    // src/post_bond_live.py:200
+    // post.bond = arc4.UInt64(0)
     swap
+    uncover 2
+    replace2 66
+    // src/post_bond_live.py:201
+    // post.status = arc4.UInt8(CLOSED)
     pushbytes 0x02
-    replace2 90
-    // src/post_bond_live.py:194
+    replace2 98
+    // src/post_bond_live.py:202
     // self._check_solvency(remainder)
     dig 1
     callsub _check_solvency
-    // src/post_bond_live.py:195
+    // src/post_bond_live.py:203
     // self._send(post.author.native, remainder)
+    dup
     extract 0 32
-    swap
+    uncover 2
     callsub _send
-    // src/post_bond_live.py:196
-    // del self.posts[post_id]
+    // src/post_bond_live.py:204
+    // self.posts[post_id] = post.copy()
+    swap
+    dup
     box_del
     pop
-    b settle_after_if_else@7
+    swap
+    box_put
+    b settle_after_if_else@10
 
-settle_else_body@3:
-    // src/post_bond_live.py:181
+settle_ternary_false@4:
+    uncover 2
+    pop
+    dup
+    b settle_ternary_merge@5
+
+settle_else_body@6:
+    // src/post_bond_live.py:188
     // self.escrowed.value -= challenger_bond
     intc_0 // 0
     bytec_0 // "escrowed"
     app_global_get_ex
     assert // check self.escrowed exists
-    uncover 2
+    uncover 3
     dup
     cover 2
     -
     bytec_0 // "escrowed"
     swap
     app_global_put
-    // src/post_bond_live.py:182
+    // src/post_bond_live.py:189
     // self._check_solvency(challenger_bond)
     dup
     callsub _check_solvency
-    // src/post_bond_live.py:183
+    // src/post_bond_live.py:190
     // self._send(challenger, challenger_bond)
-    uncover 2
+    uncover 3
     swap
     callsub _send
-    b settle_after_if_else@4
+    b settle_after_if_else@7
 
 
-// post_bond_live.PostBondLive.close[routing]() -> void:
-close:
-    // src/post_bond_live.py:198
+// post_bond_live.PostBondLive.withdraw[routing]() -> void:
+withdraw:
+    // src/post_bond_live.py:206
     // @arc4.abimethod
     txna ApplicationArgs 1
     dup
@@ -777,65 +813,98 @@ close:
     intc_2 // 8
     ==
     assert // invalid number of bytes for arc4.uint64
-    // src/post_bond_live.py:201
+    txna ApplicationArgs 2
+    dup
+    len
+    intc_2 // 8
+    ==
+    assert // invalid number of bytes for arc4.uint64
+    btoi
+    // src/post_bond_live.py:210
     // post = self.posts[post_id].copy()
     bytec_1 // "p"
-    swap
+    uncover 2
     concat
-    // src/post_bond_live.py:202
+    dup
+    box_get
+    assert // check self.posts entry exists
+    // src/post_bond_live.py:211
     // assert Txn.sender == post.author.native, "author only"
     txn Sender
-    // src/post_bond_live.py:201-202
+    // src/post_bond_live.py:210-211
     // post = self.posts[post_id].copy()
     // assert Txn.sender == post.author.native, "author only"
-    dig 1
+    dig 2
     intc_0 // 0
     pushint 32
     box_extract // on error: index out of bounds
-    // src/post_bond_live.py:202
+    // src/post_bond_live.py:211
     // assert Txn.sender == post.author.native, "author only"
-    swap
-    dig 1
     ==
     assert // author only
-    // src/post_bond_live.py:203
+    // src/post_bond_live.py:212
     // assert post.status.native == UInt64(OPEN), "challenged"
     dig 1
-    pushint 90
+    pushint 98
     intc_1 // 1
     box_extract // on error: index out of bounds
     btoi
     !
     assert // challenged
-    // src/post_bond_live.py:204
-    // self.escrowed.value -= post.bond.native
-    intc_0 // 0
-    bytec_0 // "escrowed"
-    app_global_get_ex
-    assert // check self.escrowed exists
+    // src/post_bond_live.py:213
+    // assert amount > UInt64(0), "amount"
     dig 2
+    assert // amount
+    // src/post_bond_live.py:214
+    // remaining = post.bond.native - amount
+    dig 1
     pushint 66
     intc_2 // 8
     box_extract // on error: index out of bounds
     btoi
+    dig 3
+    -
+    // src/post_bond_live.py:215
+    // assert remaining >= self.min_bond.value, "below floor"
+    intc_0 // 0
+    bytec_2 // "min_bond"
+    app_global_get_ex
+    assert // check self.min_bond exists
+    dig 1
+    <=
+    assert // below floor
+    // src/post_bond_live.py:216
+    // post.bond = arc4.UInt64(remaining)
+    itob
     swap
     dig 1
+    replace2 66
+    // src/post_bond_live.py:217
+    // self.escrowed.value -= amount
+    intc_0 // 0
+    bytec_0 // "escrowed"
+    app_global_get_ex
+    assert // check self.escrowed exists
+    dig 4
     -
     bytec_0 // "escrowed"
     swap
     app_global_put
-    // src/post_bond_live.py:205
-    // self._check_solvency(post.bond.native)
-    dup
+    // src/post_bond_live.py:218
+    // self._check_solvency(amount)
+    dig 3
     callsub _check_solvency
-    // src/post_bond_live.py:206
-    // self._send(post.author.native, post.bond.native)
+    // src/post_bond_live.py:219
+    // self._send(post.author.native, amount)
+    extract 0 32
+    uncover 3
     callsub _send
-    // src/post_bond_live.py:207
-    // del self.posts[post_id]
-    box_del
-    pop
-    // src/post_bond_live.py:198
+    // src/post_bond_live.py:216
+    // post.bond = arc4.UInt64(remaining)
+    pushint 66
+    swap
+    box_replace // on error: index out of bounds
+    // src/post_bond_live.py:206
     // @arc4.abimethod
     intc_1 // 1
     return
@@ -843,7 +912,7 @@ close:
 
 // post_bond_live.PostBondLive.release_stale[routing]() -> void:
 release_stale:
-    // src/post_bond_live.py:209
+    // src/post_bond_live.py:222
     // @arc4.abimethod
     txna ApplicationArgs 1
     dup
@@ -851,7 +920,7 @@ release_stale:
     intc_2 // 8
     ==
     assert // invalid number of bytes for arc4.uint64
-    // src/post_bond_live.py:212
+    // src/post_bond_live.py:225
     // post = self.posts[post_id].copy()
     bytec_1 // "p"
     swap
@@ -859,73 +928,73 @@ release_stale:
     dup
     box_get
     assert // check self.posts entry exists
-    // src/post_bond_live.py:212-213
+    // src/post_bond_live.py:225-226
     // post = self.posts[post_id].copy()
     // assert post.status.native == UInt64(CHALLENGED), "not challenged"
     dig 1
-    pushint 90
+    pushint 98
     intc_1 // 1
     box_extract // on error: index out of bounds
-    // src/post_bond_live.py:213
+    // src/post_bond_live.py:226
     // assert post.status.native == UInt64(CHALLENGED), "not challenged"
     btoi
     intc_1 // 1
     ==
     assert // not challenged
-    // src/post_bond_live.py:214
+    // src/post_bond_live.py:227
     // assert Global.latest_timestamp >= post.resolve_deadline.native, "arbiter still has time"
     global LatestTimestamp
     dig 2
-    pushint 82
+    pushint 90
     intc_2 // 8
     box_extract // on error: index out of bounds
     btoi
     >=
     assert // arbiter still has time
-    // src/post_bond_live.py:215
+    // src/post_bond_live.py:228
     // challenger = post.challenger.native
     dig 1
     pushint 32
     dup
     box_extract // on error: index out of bounds
-    // src/post_bond_live.py:216
+    // src/post_bond_live.py:229
     // amount = post.challenger_bond.native
     dig 2
     pushint 74
     intc_2 // 8
     box_extract // on error: index out of bounds
     btoi
-    // src/post_bond_live.py:217
+    // src/post_bond_live.py:230
     // post.challenger = arc4.Address()
     global ZeroAddress
     uncover 3
     swap
     replace2 32
-    // src/post_bond_live.py:218
+    // src/post_bond_live.py:231
     // post.challenger_bond = arc4.UInt64(0)
     intc_0 // 0
     itob
     swap
     dig 1
     replace2 74
-    // src/post_bond_live.py:219
+    // src/post_bond_live.py:232
     // post.resolve_deadline = arc4.UInt64(0)
     swap
-    replace2 82
-    // src/post_bond_live.py:220
+    replace2 90
+    // src/post_bond_live.py:233
     // post.rulings = arc4.UInt64(post.rulings.native + UInt64(1))
     dup
-    pushint 91
+    pushint 99
     extract_uint64
     intc_1 // 1
     +
     itob
-    replace2 91
-    // src/post_bond_live.py:221
+    replace2 99
+    // src/post_bond_live.py:234
     // post.status = arc4.UInt8(OPEN)
     bytec 9 // 0x00
-    replace2 90
-    // src/post_bond_live.py:222
+    replace2 98
+    // src/post_bond_live.py:235
     // self.escrowed.value -= amount
     intc_0 // 0
     bytec_0 // "escrowed"
@@ -936,21 +1005,21 @@ release_stale:
     bytec_0 // "escrowed"
     swap
     app_global_put
-    // src/post_bond_live.py:223
+    // src/post_bond_live.py:236
     // self._check_solvency(amount)
     dig 1
     callsub _check_solvency
-    // src/post_bond_live.py:224
+    // src/post_bond_live.py:237
     // self._send(challenger, amount)
     cover 2
     callsub _send
-    // src/post_bond_live.py:225
+    // src/post_bond_live.py:238
     // self.posts[post_id] = post.copy()
     dig 1
     box_del
     pop
     box_put
-    // src/post_bond_live.py:209
+    // src/post_bond_live.py:222
     // @arc4.abimethod
     intc_1 // 1
     return
@@ -958,7 +1027,7 @@ release_stale:
 
 // post_bond_live.PostBondLive.get_post[routing]() -> void:
 get_post:
-    // src/post_bond_live.py:229
+    // src/post_bond_live.py:242
     // @arc4.abimethod(readonly=True)
     txna ApplicationArgs 1
     dup
@@ -966,14 +1035,14 @@ get_post:
     intc_2 // 8
     ==
     assert // invalid number of bytes for arc4.uint64
-    // src/post_bond_live.py:231
+    // src/post_bond_live.py:244
     // return self.posts[post_id]
     bytec_1 // "p"
     swap
     concat
     box_get
     assert // check self.posts entry exists
-    // src/post_bond_live.py:229
+    // src/post_bond_live.py:242
     // @arc4.abimethod(readonly=True)
     bytec 10 // 0x151f7c75
     swap
@@ -985,13 +1054,13 @@ get_post:
 
 // post_bond_live.PostBondLive.escrow_total[routing]() -> void:
 escrow_total:
-    // src/post_bond_live.py:235
+    // src/post_bond_live.py:248
     // return self.escrowed.value
     intc_0 // 0
     bytec_0 // "escrowed"
     app_global_get_ex
     assert // check self.escrowed exists
-    // src/post_bond_live.py:233
+    // src/post_bond_live.py:246
     // @arc4.abimethod(readonly=True)
     itob
     bytec 10 // 0x151f7c75
@@ -1004,10 +1073,10 @@ escrow_total:
 
 // post_bond_live.PostBondLive._check_solvency(total_out: uint64) -> void:
 _check_solvency:
-    // src/post_bond_live.py:239
+    // src/post_bond_live.py:252
     // def _check_solvency(self, total_out: UInt64) -> None:
     proto 1 0
-    // src/post_bond_live.py:240
+    // src/post_bond_live.py:253
     // assert op.balance(Global.current_application_address) >= total_out + self.escrowed.value, "solvency"
     global CurrentApplicationAddress
     balance
@@ -1024,14 +1093,14 @@ _check_solvency:
 
 // post_bond_live.PostBondLive._send(to: bytes, amount: uint64) -> void:
 _send:
-    // src/post_bond_live.py:242
+    // src/post_bond_live.py:255
     // def _send(self, to: Account, amount: UInt64) -> None:
     proto 2 0
-    // src/post_bond_live.py:243
+    // src/post_bond_live.py:256
     // if amount > UInt64(0):
     frame_dig -1
     bz _send_after_if_else@3
-    // src/post_bond_live.py:244
+    // src/post_bond_live.py:257
     // itxn.Payment(receiver=to, amount=amount, fee=UInt64(0)).submit()
     itxn_begin
     frame_dig -1

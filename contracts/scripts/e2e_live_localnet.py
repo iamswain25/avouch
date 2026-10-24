@@ -1,11 +1,13 @@
-"""Localnet e2e for the living-bond contract (PostBondLive): challenge at any time.
+"""Localnet e2e for the living-bond contract: no window, no deletion, partial withdrawal.
 
-  A guilty      post -> challenge -> settle(guilty): partial forfeit, post stays OPEN
-  B innocent    challenge -> settle(not guilty): challenger refunded, bond untouched
-  C stale       challenge -> arbiter silent -> release_stale: challenger refunded, OPEN
-  D close       author closes: bond returned, box gone, escrow drained
-  E any time    a challenge lands long after posting (no window exists at all)
-  F guards      non-arbiter settle, non-author close, double challenge, challenge after close
+  A withdraw    author withdraws the surplus down to the floor; post stays OPEN and bonded
+  B guilty      challenge the withdrawn post -> forfeit is computed on the PEAK bond,
+                drains what is held, post goes CLOSED but the box (content) survives
+  C innocent    challenge -> not guilty: challenger refunded, bond untouched
+  D stale       arbiter silent -> release_stale: challenger refunded, post OPEN
+  E guards      withdraw below floor / while CHALLENGED / by a stranger are rejected
+  F closed      a drained post is still readable, and no longer challengeable
+  G invariant   escrow == sum of the bonds still held
 
 Run: .venv/bin/python scripts/e2e_live_localnet.py
 """
@@ -27,15 +29,16 @@ TOKEN = "a" * 64
 ART = Path(__file__).resolve().parent.parent / "src" / "artifacts"
 
 ONE = 1_000_000
-BOND = 2 * ONE            # 2 ALGO so a 50% forfeit still leaves >= min_bond
+BOND = 2 * ONE
 MIN_BOND = 1 * ONE
-CHAL = 2 * ONE            # 1:1
+CHAL_BPS = 10000
 SHARE_BPS = 5000
 FORFEIT_BPS = 5000
 RESOLVE_WINDOW = 4
 FEE = 1000
 
-GET_POST_SIG = "get_post(uint64)(address,address,byte[],uint64,uint64,uint64,uint8,uint64,uint64)"
+GET_POST_SIG = "get_post(uint64)(address,address,byte[],uint64,uint64,uint64,uint64,uint8,uint64,uint64)"
+IDX_BOND, IDX_PEAK, IDX_DEADLINE, IDX_STATUS, IDX_RULINGS = 3, 5, 6, 7, 8
 
 
 class Acct:
@@ -80,7 +83,7 @@ def box_key(post_id: int) -> bytes:
     return b"p" + post_id.to_bytes(8, "big")
 
 
-def deploy(a, creator) -> int:
+def deploy(a, creator, arbiter: "Acct") -> int:
     src = json.loads((ART / "PostBondLive.arc56.json").read_text())
     approval = base64.b64decode(src["byteCode"]["approval"])
     clear = base64.b64decode(src["byteCode"]["clear"])
@@ -88,7 +91,7 @@ def deploy(a, creator) -> int:
     sp.flat_fee = True
     sp.fee = FEE
     method = abi.Method.from_signature("create(address,address,uint64,uint64,uint64,uint64,uint64)void")
-    values = [ADDR_ARBITER, creator.address, MIN_BOND, 10000, SHARE_BPS, FORFEIT_BPS, RESOLVE_WINDOW]
+    values = [arbiter.address, creator.address, MIN_BOND, CHAL_BPS, SHARE_BPS, FORFEIT_BPS, RESOLVE_WINDOW]
     app_args = [method.get_selector()] + [method.args[i].type.encode(v) for i, v in enumerate(values)]
     txn = transaction.ApplicationCreateTxn(
         creator.address, sp, transaction.OnComplete.NoOpOC, approval, clear,
@@ -139,7 +142,7 @@ def group_post(a, author, app_id, pid, bond=BOND, accounts=()):
     sp.fee = FEE
     pay = transaction.PaymentTxn(author.address, sp, app_addr(app_id), bond)
     method = abi.Method.from_signature("post_bond(pay,uint64,byte[])void")
-    ch = f"sha256:live-post-{pid}-{int(time.time())}".encode()
+    ch = f"sha256:live-{pid}-{int(time.time()*1000)}".encode()
     sp2 = a.suggested_params()
     sp2.flat_fee = True
     sp2.fee = 3000
@@ -152,7 +155,9 @@ def group_post(a, author, app_id, pid, bond=BOND, accounts=()):
     wait(a, a.send_transactions([pay.sign(author.private_key), appcall.sign(author.private_key)]))
 
 
-def group_challenge(a, challenger, app_id, pid, amount=CHAL, accounts=()):
+def group_challenge(a, challenger, app_id, pid, amount=0, accounts=()):
+    if amount == 0:
+        amount = int(post_state(a, challenger, app_id, pid)[IDX_BOND]) * CHAL_BPS // 10000
     sp = a.suggested_params()
     sp.flat_fee = True
     sp.fee = FEE
@@ -168,6 +173,7 @@ def group_challenge(a, challenger, app_id, pid, amount=CHAL, accounts=()):
     )
     transaction.assign_group_id([pay, appcall])
     wait(a, a.send_transactions([pay.sign(challenger.private_key), appcall.sign(challenger.private_key)]))
+    return amount
 
 
 def poke(a, acct):
@@ -191,122 +197,108 @@ def wait_ledger(a, ts: int, poker, timeout_s: float = 60.0):
 
 def main() -> int:
     a, dispenser = connect()
-    print("dispenser:", dispenser.address[:12], "round:", a.status()["last-round"])
-
     author = Acct.generate()
     challenger = Acct.generate()
     arbiter = Acct.generate()
     stranger = Acct.generate()
     for acct in (author, challenger, arbiter, stranger):
-        send_pay(a, dispenser, acct.address, 20_000_000)
+        send_pay(a, dispenser, acct.address, 30_000_000)
 
-    global ADDR_ARBITER
-    ADDR_ARBITER = arbiter.address
-
-    app_id = deploy(a, dispenser)
-    print("app id:", app_id)
+    app_id = deploy(a, dispenser, arbiter)
+    print("app id:", app_id, "| round:", a.status()["last-round"])
     send_pay(a, dispenser, app_addr(app_id), 5_000_000)
     everyone = [author.address, challenger.address, arbiter.address, dispenser.address]
     results = []
 
-    # ---------------- E: challenge long after posting (no window exists)
-    pid = 5
-    group_post(a, author, app_id, pid, accounts=everyone)
-    for _ in range(6):
-        poke(a, dispenser)
-    group_challenge(a, challenger, app_id, pid, accounts=everyone)
-    st = post_state(a, dispenser, app_id, pid)
-    ok_anytime = int(st[6]) == 1  # CHALLENGED
-    call(a, arbiter, app_id, "settle(uint64,bool)void", [pid, False], boxes=[box_key(pid)], accounts=everyone)
-    results.append(("E challenge after many rounds (no window)", ok_anytime, f"status={int(st[6])}"))
-
-    # ---------------- A: guilty -> partial forfeit, post stays OPEN
+    # ---------------- A: withdraw the surplus, post stays bonded
     pid = 1
     group_post(a, author, app_id, pid, accounts=everyone)
-    group_challenge(a, challenger, app_id, pid, accounts=everyone)
-    ch_before = bal(a, challenger.address)
-    tr_before = bal(a, dispenser.address)
+    au_before = bal(a, author.address)
     esc_before = escrow_total(a, dispenser, app_id)
+    call(a, author, app_id, "withdraw(uint64,uint64)void", [pid, ONE], boxes=[box_key(pid)], accounts=everyone)
+    st = post_state(a, dispenser, app_id, pid)
+    ok_withdraw = (int(st[IDX_BOND]) == ONE and int(st[IDX_PEAK]) == BOND and int(st[IDX_STATUS]) == 0
+                   and bal(a, author.address) - au_before == ONE - 3000
+                   and escrow_total(a, dispenser, app_id) == esc_before - ONE)
+    results.append(("A withdraw surplus: bond 2->1 ALGO, post OPEN, escrow down",
+                    ok_withdraw, f"bond={int(st[IDX_BOND])} peak={int(st[IDX_PEAK])}"))
+
+    # ---------------- B: challenge the withdrawn post, guilty -> peak-based forfeit
+    chal_amount = group_challenge(a, challenger, app_id, pid, accounts=everyone)
+    ch_before = bal(a, challenger.address)
     call(a, arbiter, app_id, "settle(uint64,bool)void", [pid, True], boxes=[box_key(pid)], accounts=everyone)
     st = post_state(a, dispenser, app_id, pid)
-    bond_left, closed = int(st[3]), int(st[6])
-    ch_delta = bal(a, challenger.address) - ch_before
-    forfeit = BOND * FORFEIT_BPS // 10000
-    expected_ch = CHAL + forfeit * SHARE_BPS // 10000
-    ok_guilty = (closed == 0 and bond_left == BOND - forfeit and ch_delta == expected_ch
-                 and escrow_total(a, dispenser, app_id) == esc_before - CHAL - forfeit)
-    results.append(("A guilty: partial forfeit, post OPEN with reduced bond", ok_guilty,
-                    f"bond {BOND}->{bond_left}, challenger +{ch_delta} (expected {expected_ch})"))
+    forfeit = min(ONE, BOND * FORFEIT_BPS // 10000)          # capped by what is held
+    expected_ch = chal_amount + forfeit * SHARE_BPS // 10000
+    ok_guilty = (int(st[IDX_STATUS]) == 2 and int(st[IDX_BOND]) == 0
+                 and bal(a, challenger.address) - ch_before == expected_ch)
+    results.append(("B guilty on withdrawn post: peak-based forfeit drains bond, CLOSED but kept",
+                    ok_guilty, f"status={int(st[IDX_STATUS])} challenger +{bal(a, challenger.address) - ch_before}"))
 
-    # ---------------- B: second challenge on the same post, innocent
-    group_challenge(a, challenger, app_id, pid, accounts=everyone)
+    # ---------------- F: closed post is readable and no longer challengeable
+    readable = post_state(a, dispenser, app_id, pid)
+    blocked = False
+    try:
+        group_challenge(a, challenger, app_id, pid, amount=CHAL_BPS, accounts=everyone)
+    except Exception:
+        blocked = True
+    results.append(("F closed post keeps its record, challenge rejected",
+                    readable is not None and blocked, f"content_hash_len={len(readable[2])}"))
+
+    # ---------------- C: innocent ruling leaves the bond alone
+    pid = 2
+    group_post(a, author, app_id, pid, accounts=everyone)
+    chal_amount = group_challenge(a, challenger, app_id, pid, accounts=everyone)
     ch_before = bal(a, challenger.address)
-    esc_before = escrow_total(a, dispenser, app_id)
     call(a, arbiter, app_id, "settle(uint64,bool)void", [pid, False], boxes=[box_key(pid)], accounts=everyone)
     st = post_state(a, dispenser, app_id, pid)
-    ok_second = (int(st[6]) == 0 and int(st[3]) == bond_left and
-                 bal(a, challenger.address) - ch_before == CHAL and
-                 escrow_total(a, dispenser, app_id) == esc_before - CHAL)
-    results.append(("B second challenge, innocent: refunded, bond untouched", ok_second,
-                    f"bond={int(st[3])} rulings={int(st[7])}"))
+    ok_innocent = (int(st[IDX_STATUS]) == 0 and int(st[IDX_BOND]) == BOND
+                   and bal(a, challenger.address) - ch_before == chal_amount
+                   and int(st[IDX_RULINGS]) == 1)
+    results.append(("C innocent: challenger refunded, bond untouched, post OPEN",
+                    ok_innocent, f"bond={int(st[IDX_BOND])} rulings={int(st[IDX_RULINGS])}"))
 
-    # ---------------- C: arbiter stalls -> release_stale
-    group_challenge(a, challenger, app_id, pid, accounts=everyone)
-    # struct order: author, challenger, hash, bond, challenger_bond, resolve_deadline, status, rulings, forfeited
-    resolve_deadline = int(post_state(a, dispenser, app_id, pid)[5])
-    wait_ledger(a, resolve_deadline, dispenser)
+    # ---------------- D: arbiter silent -> release_stale
+    pid = 3
+    group_post(a, author, app_id, pid, accounts=everyone)
+    chal_amount = group_challenge(a, challenger, app_id, pid, accounts=everyone)
+    deadline = int(post_state(a, dispenser, app_id, pid)[IDX_DEADLINE])
+    wait_ledger(a, deadline, dispenser)
     ch_before = bal(a, challenger.address)
     call(a, stranger, app_id, "release_stale(uint64)void", [pid], boxes=[box_key(pid)], accounts=everyone)
     st = post_state(a, dispenser, app_id, pid)
-    ok_stale = int(st[6]) == 0 and bal(a, challenger.address) - ch_before == CHAL
-    results.append(("C stale: anyone refunds challenger, post stays OPEN", ok_stale,
-                    f"status={int(st[6])} delta={bal(a, challenger.address) - ch_before}"))
+    ok_stale = int(st[IDX_STATUS]) == 0 and bal(a, challenger.address) - ch_before == chal_amount
+    results.append(("D stale: challenger refunded, post back to OPEN", ok_stale,
+                    f"status={int(st[IDX_STATUS])}"))
 
-    # ---------------- D: author closes -> bond back, box gone
-    au_before = bal(a, author.address)
-    esc_before = escrow_total(a, dispenser, app_id)
-    call(a, author, app_id, "close(uint64)void", [pid], boxes=[box_key(pid)], accounts=everyone)
-    gone = False
-    try:
-        post_state(a, dispenser, app_id, pid)
-    except Exception:
-        gone = True
-    ok_close = (gone and bal(a, author.address) - au_before == bond_left - 3000  # author pays the call fee
-                and escrow_total(a, dispenser, app_id) == esc_before - bond_left)
-    results.append(("D close: bond returned, box deleted", ok_close,
-                    f"box_gone={gone} author +{bal(a, author.address) - au_before}"))
-
-    # ---------------- F: guards
-    pid = 6
+    # ---------------- E: withdraw guards
+    pid = 4
     group_post(a, author, app_id, pid, accounts=everyone)
-    g1 = g2 = g3 = g4 = False
-    try:  # non-arbiter settle
-        group_challenge(a, challenger, app_id, pid, accounts=everyone)
-        call(a, author, app_id, "settle(uint64,bool)void", [pid, True], boxes=[box_key(pid)], accounts=everyone)
+    g1 = g2 = g3 = False
+    try:  # below the floor
+        call(a, author, app_id, "withdraw(uint64,uint64)void", [pid, BOND], boxes=[box_key(pid)], accounts=everyone)
     except Exception:
         g1 = True
-    try:  # challenge while already challenged
-        group_challenge(a, stranger, app_id, pid, accounts=everyone)
-    except Exception:
-        g2 = True
-    try:  # non-author close
-        call(a, challenger, app_id, "close(uint64)void", [pid], boxes=[box_key(pid)], accounts=everyone)
+    try:  # not the author
+        call(a, stranger, app_id, "withdraw(uint64,uint64)void", [pid, ONE], boxes=[box_key(pid)], accounts=everyone)
     except Exception:
         g3 = True
-    call(a, arbiter, app_id, "settle(uint64,bool)void", [pid, False], boxes=[box_key(pid)], accounts=everyone)
-    call(a, author, app_id, "close(uint64)void", [pid], boxes=[box_key(pid)], accounts=everyone)
-    try:  # challenge after close
-        group_challenge(a, challenger, app_id, pid, accounts=everyone)
+    group_challenge(a, challenger, app_id, pid, accounts=everyone)
+    try:  # while challenged
+        call(a, author, app_id, "withdraw(uint64,uint64)void", [pid, ONE], boxes=[box_key(pid)], accounts=everyone)
     except Exception:
-        g4 = True
-    results.append(("F guards: non-arbiter/non-author/double-challenge/after-close",
-                    g1 and g2 and g3 and g4, f"{g1},{g2},{g3},{g4}"))
+        g2 = True
+    call(a, arbiter, app_id, "settle(uint64,bool)void", [pid, False], boxes=[box_key(pid)], accounts=everyone)
+    results.append(("E guards: below floor / not author / while challenged",
+                    g1 and g2 and g3, f"{g1},{g2},{g3}"))
 
-    # cleanup: close the post from scenario E so the final escrow invariant is 0
-    call(a, author, app_id, "close(uint64)void", [5], boxes=[box_key(5)], accounts=everyone)
-    results.append(("G final: escrow drained after every post closed",
-                    escrow_total(a, dispenser, app_id) == 0,
-                    f"escrow={escrow_total(a, dispenser, app_id)}"))
+    # ---------------- G: escrow invariant
+    held = 0
+    for p in (2, 3, 4):
+        held += int(post_state(a, dispenser, app_id, p)[IDX_BOND])
+    ok_escrow = escrow_total(a, dispenser, app_id) == held
+    results.append(("G invariant: escrow == sum of bonds still held", ok_escrow,
+                    f"escrow={escrow_total(a, dispenser, app_id)} held={held}"))
 
     print()
     ok_all = True
@@ -314,7 +306,6 @@ def main() -> int:
         print(("PASS " if ok else "FAIL ") + name, "|", detail)
         ok_all &= bool(ok)
     print()
-    print("escrow left:", escrow_total(a, dispenser, app_id), "| app balance:", bal(a, app_addr(app_id)))
     print("RESULT:", "ALL PASS" if ok_all else "FAILURES PRESENT")
     return 0 if ok_all else 1
 

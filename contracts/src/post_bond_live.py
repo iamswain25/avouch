@@ -7,25 +7,28 @@ gone.
 
 New rule, and its cost:
 
-  - A post is challengeable for as long as its bond is locked. No deadline to miss.
-  - The bond is therefore NOT returned on a timer. The author closes the post to get it
-    back, and closing is a public act: the content stops being bonded and readers can see
-    that. Removing the window moves the exit from time to choice.
-  - Slashing is partial (forfeit_bps of the bond), so the post survives a ruling and stays
-    challengeable afterwards. A full-slash design would end the post's life at the first
-    ruling, which is the same finality the window gave us.
+  -  A post is challengeable for as long as its bond is locked. No deadline to miss.
+  - The bond is therefore NOT returned on a timer, and the post is never deleted: removing
+    the content would throw away the very record the bond exists to guarantee. Instead the
+    author WITHDRAWS the surplus down to the floor (min_bond) and keeps the rest staked.
+  - The floor is the deterrence bond, so a withdrawn post is still challengeable at a
+    meaningful stake, forever. Content and ruling history stay readable.
+  - Slashing is computed against the PEAK bond (the amount originally posted), capped by
+    what is actually held. Otherwise an author could withdraw to the floor and then get
+    slashed cheaply. A post whose bond falls below the floor is CLOSED: the box and the
+    content stay, the bond is gone, and the post is no longer challengeable.
 
 State machine
 
   post_bond  -> OPEN        (bond locked, no deadline)
+  withdraw   -> OPEN        (author takes the surplus above the floor; post stays bonded)
   challenge  -> CHALLENGED  (challenger bond locked, resolve_deadline set)
-  settle     -> OPEN        (partial forfeit, or challenger refunded)  [+rulings]
-             -> CLOSED      (only if the remaining bond is below min_bond)
-  close      -> CLOSED      (author only, OPEN only: bond refunded, post unforgeable)
+  settle     -> OPEN        (forfeit or challenger refunded)  [+rulings]
+             -> CLOSED      (only when the remaining bond is below min_bond)
   release_stale -> OPEN     (anyone, arbiter silent past resolve_deadline)
 
-Invariant: challengeable == bonded. `close` is the only path that ends challengeability,
-and it is visible on chain.
+Invariant: challengeable == bonded. Nothing deletes a post; the only way it stops being
+challengeable is a ruling that drains the bond below the floor.
 """
 
 from algopy import (
@@ -53,6 +56,7 @@ class Post(arc4.Struct):
     content_hash: arc4.DynamicBytes
     bond: arc4.UInt64
     challenger_bond: arc4.UInt64
+    bond_peak: arc4.UInt64
     resolve_deadline: arc4.UInt64
     status: arc4.UInt8
     rulings: arc4.UInt64
@@ -122,6 +126,7 @@ class PostBondLive(ARC4Contract):
             content_hash=content_hash.copy(),
             bond=arc4.UInt64(bond_txn.amount),
             challenger_bond=arc4.UInt64(0),
+            bond_peak=arc4.UInt64(bond_txn.amount),
             resolve_deadline=arc4.UInt64(0),
             status=arc4.UInt8(OPEN),
             rulings=arc4.UInt64(0),
@@ -167,7 +172,9 @@ class PostBondLive(ARC4Contract):
         post.rulings = arc4.UInt64(post.rulings.native + UInt64(1))
 
         if guilty.native:
-            forfeit = post.bond.native * self.forfeit_bps.value // UInt64(10000)
+            # computed on the peak bond so withdrawing to the floor does not cheapen the penalty
+            nominal = post.bond_peak.native * self.forfeit_bps.value // UInt64(10000)
+            forfeit = nominal if nominal <= post.bond.native else post.bond.native
             to_challenger = forfeit * self.challenger_share_bps.value // UInt64(10000)
             to_treasury = forfeit - to_challenger
             post.bond = arc4.UInt64(post.bond.native - forfeit)
@@ -187,24 +194,30 @@ class PostBondLive(ARC4Contract):
             post.status = arc4.UInt8(OPEN)
             self.posts[post_id] = post.copy()
         else:
-            # bond exhausted: close it and hand the remainder back
+            # bond drained: the post is closed but NOT deleted — the box and the content stay
             remainder = post.bond.native
             self.escrowed.value -= remainder
+            post.bond = arc4.UInt64(0)
             post.status = arc4.UInt8(CLOSED)
             self._check_solvency(remainder)
             self._send(post.author.native, remainder)
-            del self.posts[post_id]
+            self.posts[post_id] = post.copy()
 
     @arc4.abimethod
-    def close(self, post_id: arc4.UInt64) -> None:
-        """Author ends the post: bond back, and the post stops being challengeable."""
+    def withdraw(self, post_id: arc4.UInt64, amount: UInt64) -> None:
+        """Author takes back the surplus above the floor; the post keeps its bond and stays
+        challengeable. Nothing is deleted, so the record survives and the stake never hits 0."""
         post = self.posts[post_id].copy()
         assert Txn.sender == post.author.native, "author only"
         assert post.status.native == UInt64(OPEN), "challenged"
-        self.escrowed.value -= post.bond.native
-        self._check_solvency(post.bond.native)
-        self._send(post.author.native, post.bond.native)
-        del self.posts[post_id]
+        assert amount > UInt64(0), "amount"
+        remaining = post.bond.native - amount
+        assert remaining >= self.min_bond.value, "below floor"
+        post.bond = arc4.UInt64(remaining)
+        self.escrowed.value -= amount
+        self._check_solvency(amount)
+        self._send(post.author.native, amount)
+        self.posts[post_id] = post.copy()
 
     @arc4.abimethod
     def release_stale(self, post_id: arc4.UInt64) -> None:
