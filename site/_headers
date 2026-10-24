@@ -22,6 +22,19 @@
   Cache-Control: no-cache
 /en/whitepaper.html
   Cache-Control: no-cache
+/ko/agents
+  Cache-Control: no-cache
+/ko/agents.html
+  Cache-Control: no-cache
+/en/agents
+  Cache-Control: no-cache
+/en/agents.html
+  Cache-Control: no-cache
+
+/llms.txt
+  Cache-Control: public, max-age=3600
+/.well-known/*
+  Cache-Control: public, max-age=3600
 
 /assets/*
   Cache-Control: public, max-age=604800, immutable
