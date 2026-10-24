@@ -38,6 +38,17 @@ PORT = 8853
 URL = f"http://127.0.0.1:{PORT}/mcp"
 
 
+def enc_txn(signed) -> str:
+    """payload.txn must be base64 of the msgpack bytes (normalized across SDK versions)."""
+    v = encoding.msgpack_encode(signed)
+    try:
+        if base64.b64decode(v, validate=True)[:1] in (b"\x81", b"\x82", b"\x83", b"\x84"):
+            return v
+    except Exception:
+        pass
+    return base64.b64encode(v.encode("latin-1")).decode()
+
+
 def connect():
     a = algod.AlgodClient(TOKEN, ALGOD_URL)
     k = KMDClient(TOKEN, KMD_URL)
@@ -90,7 +101,7 @@ def pay_from_accept(a: algod.AlgodClient, payer_sk: str, accept: dict) -> str:
         "x402Version": 2,
         "scheme": accept["scheme"],
         "network": accept["network"],
-        "payload": {"txn": encoding.msgpack_encode(signed)},
+        "payload": {"txn": enc_txn(signed)},
     }
     return base64.b64encode(json.dumps(envelope).encode()).decode()
 

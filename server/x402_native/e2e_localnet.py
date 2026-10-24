@@ -40,6 +40,17 @@ TOKEN = "a" * 64
 PORT = 8851
 
 
+def enc_txn(signed) -> str:
+    """payload.txn must be base64 of the msgpack bytes (normalized across SDK versions)."""
+    v = encoding.msgpack_encode(signed)
+    try:
+        if base64.b64decode(v, validate=True)[:1] in (b"\x81", b"\x82", b"\x83", b"\x84"):
+            return v
+    except Exception:
+        pass
+    return base64.b64encode(v.encode("latin-1")).decode()
+
+
 def connect():
     a = algod.AlgodClient(TOKEN, ALGOD_URL)
     k = KMDClient(TOKEN, KMD_URL)
@@ -145,7 +156,7 @@ def main() -> int:
         tampered = base64.b64encode(json.dumps({
             "x402Version": 2, "scheme": "exact",
             "network": os.environ.get("X402_NETWORK", "algorand:SGO1GKSzyE7IEPItTxCByw9x8FmnrCDe"),
-            "payload": {"txn": encoding.msgpack_encode(signed7)},
+            "payload": {"txn": enc_txn(signed7)},
         }).encode()).decode()
         code7, _, body7 = http("GET", "/paid", {"PAYMENT-SIGNATURE": tampered})
         results.append(("7 tamper: receiver rewrite rejected", code7 == 402, f"{code7} err={body7.get('error')}"))

@@ -1,0 +1,10 @@
+name = "avouch"
+pages_build_output_dir = "site"
+compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Local dev placeholder id; the production id is set after `wrangler d1 create avouch-board`.
+[[d1_databases]]
+binding = "DB"
+database_name = "avouch-board"
+database_id = "d5a3ab77-a72d-4d85-a567-24c83066d4a5"

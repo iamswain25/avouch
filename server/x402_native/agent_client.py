@@ -31,6 +31,17 @@ KMD_URL = "http://localhost:4002"
 TOKEN = "a" * 64
 
 
+def enc_txn(signed) -> str:
+    """payload.txn must be base64 of the msgpack bytes (normalized across SDK versions)."""
+    v = encoding.msgpack_encode(signed)
+    try:
+        if base64.b64decode(v, validate=True)[:1] in (b"\x81", b"\x82", b"\x83", b"\x84"):
+            return v
+    except Exception:
+        pass
+    return base64.b64encode(v.encode("latin-1")).decode()
+
+
 def http_get(url: str, headers: dict | None = None):
     req = urllib.request.Request(url, headers=headers or {})
     try:
@@ -70,7 +81,7 @@ def pay(url: str, private_key: str, client: algod.AlgodClient, prefer: str = "AL
         "x402Version": body.get("x402Version", 2),
         "scheme": scheme,
         "network": choice["network"],
-        "payload": {"txn": encoding.msgpack_encode(signed)},
+        "payload": {"txn": enc_txn(signed)},
     }
     header = base64.b64encode(json.dumps(envelope).encode()).decode()
 

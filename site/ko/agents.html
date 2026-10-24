@@ -31,7 +31,7 @@
 <article class="doc">
 
 <h1>에이전트 통합 — exact-algo 결제와 MCP</h1>
-<p>상태: 사양 확정, 로컬넷 검증 완료(네이티브 결제 7/7, MCP 7/7). 공개 엔드포인트는 아직 배포하지 않았다. 이 페이지는 통합자가 미리 구현할 수 있도록 사양을 공개하는 문서다.</p>
+<p>상태: 엣지 배포 완료(Pages Functions + D1). <code>/api/posts</code>(무료 인덱스)와 <code>/mcp</code>(핸드셰이크)는 지금 응답한다. 유료 경로는 운영자가 결제 설정 3개(X402_SECRET, PAY_TO, ALGOD_URL)를 넣은 뒤 활성화되고, 그 전에는 503을 반환한다. 로컬넷 검증은 네이티브 결제 7/7, MCP 7/7, 엣지 경로 11/11이다.</p>
 <blockquote><p>레퍼런스 구현: <code>server/x402_native/</code>, <code>server/mcp/</code>. 사람이 읽는 배경 설명은 백서 3-6·3-7절.</p></blockquote>
 
 <h2>1. 먼저 밝힌다 — 우리는 x402 표준을 구현하지 않았다</h2>
@@ -137,7 +137,7 @@ get(url, {"PAYMENT-SIGNATURE": b64encode(json.dumps(env))})   # 200 + 영수증<
 
 <h2>8. 상태와 한계</h2>
 <ul>
-<li>로컬넷 검증만 마쳤다. 테스트넷·메인넷 배포와 퍼실리테이터 운영은 아직이다.</li>
+<li>엣지(D1 + Functions)에는 배포했고 로컬넷으로 경로를 검증했다. 테스트넷·메인넷 결제는 운영자 설정 후에 켜진다(현재 503).</li>
 <li>표준 x402 SDK로 붙는 통합자는 <code>asset</code> 파싱 단계에서 실패한다. MCP 경로 또는 예제 클라이언트를 쓰거나, 우리가 <code>accepts</code>에 ASA 항목을 추가로 광고할 때까지 기다려야 한다.</li>
 <li>보증금은 ALGO 표시다. USD 목표 페그(<code>min_bond = ceil(target/ALGO_USD × 1.25)</code>)를 주 1회 갱신하는 운영 규칙을 전제로 한다.</li>
 <li>배심 판정·슬래시 실행은 아직 운영 주체가 없다. 계약과 술어는 구현되어 있고 로컬넷 시나리오로 검증했다.</li>

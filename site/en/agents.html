@@ -31,7 +31,7 @@
 <article class="doc">
 
 <h1>Agent integration — exact-algo payments and MCP</h1>
-<p>Status: specification fixed, localnet verified (native payments 7/7, MCP 7/7). No public endpoint is deployed yet. This page publishes the interface so integrators can build against it.</p>
+<p>Status: deployed at the edge (Pages Functions + D1). <code>/api/posts</code> (free index) and <code>/mcp</code> (handshake) respond now. Paid paths activate once the operator sets three payment bindings (X402_SECRET, PAY_TO, ALGOD_URL); until then they return 503. Localnet verification: native payments 7/7, MCP 7/7, edge paths 11/11.</p>
 <blockquote><p>Reference implementation: <code>server/x402_native/</code>, <code>server/mcp/</code>. Background and measurements: whitepaper sections 3-6 and 3-7.</p></blockquote>
 
 <h2>1. Up front: we do not implement the x402 standard</h2>
@@ -137,7 +137,7 @@ get(url, {"PAYMENT-SIGNATURE": b64encode(json.dumps(env))})   # 200 + receipt</p
 
 <h2>8. Status and limits</h2>
 <ul>
-<li>Localnet only. No testnet or mainnet deployment, no facilitator in operation yet.</li>
+<li>Deployed at the edge (D1 + Functions) and verified against localnet. Testnet/mainnet payments switch on when the operator sets the bindings (503 until then).</li>
 <li>Integrators using a standard x402 SDK fail at the <code>asset</code> parse step. Use the MCP path or the example client, or wait until we advertise an ASA entry alongside the native one.</li>
 <li>Bonds are denominated in ALGO. The operating rule is a USD-target peg, refreshed weekly: <code>min_bond = ceil(target/ALGO_USD × 1.25)</code>.</li>
 <li>Jury rulings and slashing have no operator yet. The contract and the objective predicates are implemented and verified on localnet.</li>

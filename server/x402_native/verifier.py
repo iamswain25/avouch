@@ -129,11 +129,13 @@ class NativeX402:
             raise ValueError(f"network mismatch: {payload.get('network')}")
 
         body = payload.get("payload") or {}
+        raw_txn = body.get("txn")
+        if not raw_txn:
+            raise ValueError("payload.txn missing")
         try:
-            signed = encoding.msgpack_decode(body["txn"])
-        except KeyError as exc:
-            raise ValueError("payload.txn missing") from exc
-        except Exception as exc:  # msgpack / undictify failures
+            # documented format: base64 of msgpack bytes (msgpack_decode accepts both)
+            signed = encoding.msgpack_decode(raw_txn)
+        except Exception as exc:
             raise ValueError(f"payload.txn is not a signed transaction: {exc}") from exc
 
         txn = signed.transaction
@@ -203,12 +205,23 @@ class NativeX402:
     # ---------------------------------------------------------------- client
 
     @staticmethod
+    def encode_txn(signed_txn: transaction.SignedTransaction) -> str:
+        """payload.txn is base64 of the msgpack bytes; normalize across SDK versions."""
+        v = encoding.msgpack_encode(signed_txn)
+        try:
+            if base64.b64decode(v, validate=True)[:1] in (b"\x81", b"\x82", b"\x83", b"\x84"):
+                return v
+        except Exception:
+            pass
+        return base64.b64encode(v.encode("latin-1")).decode()
+
+    @staticmethod
     def build_payment_header(signed_txn: transaction.SignedTransaction, network: str = NETWORK) -> str:
         inner = {
             "x402Version": 2,
             "scheme": "exact",
             "network": network,
-            "payload": {"txn": encoding.msgpack_encode(signed_txn)},
+            "payload": {"txn": NativeX402.encode_txn(signed_txn)},
         }
         return base64.b64encode(json.dumps(inner).encode()).decode()
 
