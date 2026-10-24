@@ -1,0 +1,16 @@
+docs/DEPLOY.md
+  h_247fbbde292880 1-46
+nginx.conf
+  h_247fbbde292880 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ce9b52d075835e79394e39258d6658e3b3e54c9e",
+  "prompts": {},
+  "humans": {
+    "h_247fbbde292880": {
+      "author": "swain <iamswain@hotmail.com>"
+    }
+  }
+}
