@@ -40,7 +40,8 @@ from dataclasses import dataclass, asdict
 import numpy as np
 
 G = 0.10           # liar gain per day while a false claim is visible ($)
-PHI_REP = 0.10     # fee on displacement
+PHI_REP = 0.10     # fee on displacement -> treasury
+P_PENALTY = 0.50   # penalty on displacement -> the party that displaced you (correction reward)
 MIN_BOND = 1.0
 Q_DETECT = 0.05    # per-day chance a corrector spots a false claim
 N_CORR = 5
@@ -57,6 +58,9 @@ class Params:
     T: int = 365
     phi_ret: float = 0.10
     phi_ret_pool: float = 0.10     # fee when retiring under an open pool
+    p_pen: float = P_PENALTY       # penalty on the displaced party
+    pen_to_treasury: bool = False  # True: the penalty leaves the game instead of paying the displacer
+    pen_split: float = 1.0         # share of the penalty paid to the displacer (rest to treasury)
     block: float = 0.50
     decay: bool = False
     b0: float = 1.0
@@ -71,6 +75,7 @@ class Outcome:
     treasury: float
     archived: bool
     slot_bond: float
+    corr_equity: float
 
 
 def run(seed: int, pr: Params) -> Outcome:
@@ -150,11 +155,23 @@ def run(seed: int, pr: Params) -> Outcome:
         # --- displacement when the pool outweighs the bond
         if pool > bond:
             fee = bond * PHI_REP
+            pen = bond * pr.p_pen
             if owner == "liar":
-                liar += bond - fee
-                liar_net += bond - fee
+                liar += bond - fee - pen
+                liar_net += bond - fee - pen
+                if pr.pen_to_treasury:
+                    treasury += pen
+                else:
+                    corr += pen * pr.pen_split   # correctors collect their share
+                    treasury += pen * (1 - pr.pen_split)
             else:
-                corr += bond - fee
+                corr += bond - fee - pen
+                if pr.pen_to_treasury:
+                    treasury += pen
+                else:
+                    liar += pen * pr.pen_split   # the displacing liar collects its share
+                    liar_net += pen * pr.pen_split
+                    treasury += pen * (1 - pr.pen_split)
             treasury += fee
             # the pool becomes the new bond
             bond = pool
@@ -167,8 +184,15 @@ def run(seed: int, pr: Params) -> Outcome:
             need = bond * 1.01
             liar -= need
             fee = bond * PHI_REP
-            corr += bond - fee
+            pen = bond * pr.p_pen
+            corr += bond - fee - pen
             treasury += fee
+            if pr.pen_to_treasury:
+                treasury += pen
+            else:
+                liar += pen * pr.pen_split
+                liar_net += pen * pr.pen_split
+                treasury += pen * (1 - pr.pen_split)
             bond = need
             owner = "liar"
             pool = 0.0
@@ -182,12 +206,13 @@ def run(seed: int, pr: Params) -> Outcome:
         treasury=treasury,
         archived=archived,
         slot_bond=bond,
+        corr_equity=corr + (bond if owner == "corr" else 0.0),
     )
 
 
 def summarize(rs: list[Outcome]) -> dict:
     out = {}
-    for k in ("false_visible_days", "escapes", "retaliations", "liar_net", "treasury", "slot_bond"):
+    for k in ("false_visible_days", "escapes", "retaliations", "liar_net", "treasury", "slot_bond", "corr_equity"):
         v = np.array([getattr(r, k) for r in rs], dtype=float)
         out[k] = {"mean": float(v.mean()), "se": float(v.std(ddof=1) / math.sqrt(len(v))) if len(v) > 1 else 0.0}
     out["archived_share"] = float(np.mean([1.0 if r.archived else 0.0 for r in rs]))
