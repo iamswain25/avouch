@@ -1,0 +1,16 @@
+server/x402_native/README.md
+  h_247fbbde292880 38-51
+server/x402_native/agent_client.py
+  h_247fbbde292880 1-121
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2243a86d8dd8002ee8fec22b5ba1615140a0c6d7",
+  "prompts": {},
+  "humans": {
+    "h_247fbbde292880": {
+      "author": "swain <iamswain@hotmail.com>"
+    }
+  }
+}
