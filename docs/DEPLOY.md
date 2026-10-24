@@ -29,7 +29,7 @@ Cloudflare → Workers & Pages → Create → Pages → Connect to Git → 저�
 
 ## 3. 직접 업로드 (Git 없이)
 
-    cd ~/workspace/avouch
+    cd avouch
     npx wrangler login
     npx wrangler pages deploy site --project-name avouch
 

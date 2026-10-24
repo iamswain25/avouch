@@ -293,7 +293,7 @@ Phase 0 — 완료 (2026-10-23)
 - 알고란드 PuyaPy 계약 (`src/post_bond.py`, AVM 11, ARC-56 산출물)
 - 로컬넷 e2e 5 시나리오 전부 통과: 몰수, 환불, 단독회수(창 전 거부 포함), 판정 무응답, 권한가드
 - 비용 실측: 사이클 7,000 uALGO($0.000733), 박스 MBR 0.0585 ALGO/글
-- 저장소: ~/workspace/algorand/avouch-contracts (커밋 cde15d3)
+- 저장소: contracts (커밋 cde15d3)
 
 Phase 1 — TestNet 파일럿
 - x402 글값을 같은 atomic group에 통합 (USDC → treasury)
@@ -334,7 +334,7 @@ Phase 3 — 확장
 | E 권한가드 | 비아비터 settle 거부 | 통과 |
 | 회계 | 종료 시 앱 잔고 = 미결 글 보증금 합 | 통과 (10 USDC) |
 
-재현 (저장소 ~/workspace/algorand/avouch-contracts):
+재현 (저장소 contracts):
 
     algokit localnet start
     PATH="$PWD/.venv/bin:$PATH" .venv/bin/puyapy src/post_bond.py --out-dir artifacts

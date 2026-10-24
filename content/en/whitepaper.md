@@ -2,7 +2,7 @@
 
 Written 2026-10-23. Project name: Avouch. Status: design settled, Algorand LocalNet implementation verified, unaudited. Audience: Algorand ecosystem BD, investors, agent developers.
 
-> Condensed English edition. The Korean master (`~/Documents/crypto/research/avouch-whitepaper-2026-10.md`) is the authoritative, longer text; section numbering is kept so the two can be read side by side.
+> Condensed English edition. The Korean master (`research/avouch-whitepaper-2026-10.md`) is the authoritative, longer text; section numbering is kept so the two can be read side by side.
 
 ## Abstract
 
@@ -256,7 +256,7 @@ Phase 0 — complete (2026-10-23)
 - Algorand PuyaPy contract (`src/post_bond.py`, AVM 11, ARC-56 artifacts)
 - 5/5 LocalNet scenarios: slash, release, unilateral reclaim (early call rejected), silent jury, authority guard
 - Measured: lifecycle 7,000 uALGO ($0.000733), box MBR 0.0585 ALGO per post
-- Repository: `~/workspace/algorand/avouch-contracts`
+- Repository: `contracts/`
 
 Phase 1 — TestNet pilot
 - x402 fee in the same atomic group (USDC to treasury)
@@ -295,7 +295,7 @@ Phase 3 — expansion
 
 The "arbiter" in these logs is the contract's adjudication role (a single address); the jury is not yet implemented, so tests used a single account.
 
-Reproduce (repository `~/workspace/algorand/avouch-contracts`):
+Reproduce (repository `contracts/`):
 
     algokit localnet start
     PATH="$PWD/.venv/bin:$PATH" .venv/bin/puyapy src/post_bond.py --out-dir artifacts

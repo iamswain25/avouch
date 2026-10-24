@@ -5,9 +5,8 @@
   uv run --with markdown python scripts/build_whitepaper.py --sync     # 위키 마스터 -> content/ko -> 빌드
 
 소스
-  ko: 위키 마스터 ~/Documents/crypto/research/avouch-whitepaper-2026-10.md
-      (--sync 가 content/ko/whitepaper.md 로 복사. 도커 이미지는 위키에 접근할 수 없다)
-  en: 이 저장소에서 직접 관리하는 content/en/whitepaper.md (동기화 대상 아님)
+  ko: 선택적 외부 마스터 (환경변수 AVOUCH_WIKI_MASTER). 미설정이면 content/ko/whitepaper.md 사용
+  en: content/en/whitepaper.md (직접 관리)
 
 출력
   site/ko/whitepaper.html, site/en/whitepaper.html
@@ -15,15 +14,30 @@
 
 from __future__ import annotations
 
+import os
 import re
-import shutil
 import sys
 from pathlib import Path
 
 import markdown
 
 ROOT = Path(__file__).resolve().parent.parent
-MASTER_KO = Path.home() / "Documents/crypto/research/avouch-whitepaper-2026-10.md"
+# optional: path to the Korean master outside the repo (env var). Unset -> content/ is authoritative.
+MASTER_KO = Path(os.environ["AVOUCH_WIKI_MASTER"]) if os.environ.get("AVOUCH_WIKI_MASTER") else None
+
+# local paths must not reach the public repo
+SCRUB = [
+    (re.compile(r"~/\S*?research/"), ""),
+    (re.compile(r"~/\S*?/algorand/avouch-contracts"), "contracts"),
+    (re.compile(r"~/\S*?/algorand/post-bond-escrow"), "contracts"),
+    (re.compile(r"~/\S*?/avouch(?=\s|$|\))"), "."),
+]
+
+
+def scrub(text: str) -> str:
+    for pattern, repl in SCRUB:
+        text = pattern.sub(repl, text)
+    return text
 
 WIKILINK = re.compile(r"\[\[([^\]|]+)(?:\|[^\]]+)?\]\]")
 
@@ -35,7 +49,7 @@ LANGS = {
         "out": ROOT / "site" / "ko" / "whitepaper.html",
         "nav": {"./": "홈", "#how": "작동", "#econ": "경제", "#status": "상태"},
         "other": ("../en/", "EN"),
-        "master_note": "마스터: ~/Documents/crypto/research/avouch-whitepaper-2026-10.md",
+        "master_note": "한국어 정본: research/avouch-whitepaper-2026-10.md",
         "home": "← 홈",
     },
     "en": {
@@ -45,7 +59,7 @@ LANGS = {
         "out": ROOT / "site" / "en" / "whitepaper.html",
         "nav": {"./": "Home", "#how": "How", "#econ": "Economics", "#status": "Status"},
         "other": ("../ko/", "KO"),
-        "master_note": "Korean master (longer, authoritative): avouch-whitepaper-2026-10.md",
+        "master_note": "Korean master (longer, authoritative): research/avouch-whitepaper-2026-10.md",
         "home": "← Home",
     },
 }
@@ -89,11 +103,14 @@ PAGE = """<!doctype html>
 
 
 def sync_from_wiki() -> None:
+    if MASTER_KO is None:
+        print("AVOUCH_WIKI_MASTER 미설정 — content/ko/whitepaper.md 를 그대로 사용한다.")
+        return
     if not MASTER_KO.exists():
         raise SystemExit(f"마스터를 찾을 수 없다: {MASTER_KO}")
     dest = LANGS["ko"]["src"]
     dest.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(MASTER_KO, dest)
+    dest.write_text(scrub(MASTER_KO.read_text(encoding="utf-8")), encoding="utf-8")
     print(f"synced {MASTER_KO.name} -> {dest.relative_to(ROOT)}")
 
 
@@ -103,7 +120,7 @@ def build(code: str) -> None:
     if not src_path.exists():
         raise SystemExit(f"{src_path} 가 없다." + (" --sync 로 먼저 동기화해라." if code == "ko" else ""))
 
-    src = src_path.read_text(encoding="utf-8")
+    src = scrub(src_path.read_text(encoding="utf-8"))
     src = WIKILINK.sub(lambda m: Path(m.group(1)).stem, src)  # Obsidian links -> plain names
     body = markdown.markdown(src, extensions=["tables", "fenced_code", "sane_lists"], output_format="html5")
 
