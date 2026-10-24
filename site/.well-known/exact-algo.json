@@ -1,0 +1,61 @@
+{
+  "scheme": "exact-algo",
+  "status": "spec-fixed-localnet-verified",
+  "standard": "NOT x402-compatible: x402 exact settles ASA/SPL/ERC-20 tokens only, this settles native ALGO",
+  "version": 2,
+  "network": {
+    "caip2": "algorand:SGO1GKSzyE7IEPItTxCByw9x8FmnrCDe",
+    "asset": "ALGO",
+    "unit": "microALGO",
+    "decimals": 6
+  },
+  "request": {
+    "method": "GET",
+    "header": "PAYMENT-SIGNATURE",
+    "envelope": {
+      "x402Version": 2,
+      "scheme": "exact",
+      "network": "<accepts[].network>",
+      "payload": { "txn": "<base64 msgpack SignedTransaction of a native pay>" }
+    }
+  },
+  "response": {
+    "status": 402,
+    "body": { "x402Version": 2, "error": "payment required", "accepts": ["..."] },
+    "success_header": "PAYMENT-RESPONSE",
+    "success_body": { "success": true, "transaction": "<txid>", "confirmedRound": 0, "payer": "<address>", "amount": 0 }
+  },
+  "transaction_rules": [
+    "type must be pay and the transaction must not be grouped",
+    "receiver must equal accepts[].payTo",
+    "amount must be >= accepts[].maxAmountRequired",
+    "note must be exactly accepts[].extra.paymentId encoded as ASCII",
+    "fee must be <= 2 * minFeeMicroAlgo (2000)",
+    "rekey_to and close_remainder_to must be empty",
+    "last_valid_round must not have passed at settlement time",
+    "genesis hash must match the advertised network"
+  ],
+  "error_codes": {
+    "underpaid": "amount below maxAmountRequired",
+    "receiver mismatch": "receiver is not payTo",
+    "unknown or expired paymentId": "paymentId missing from note, or challenge expired",
+    "paymentId already used": "single use; request a fresh challenge",
+    "transaction expired": "last_valid_round passed before settlement",
+    "settlement failed": "network rejected the transaction (signature, funds, already in ledger)"
+  },
+  "prices_micro_algo": {
+    "board_index": 0,
+    "post_read": 1000,
+    "post_fee": 20000,
+    "min_bond": 1000000,
+    "peg_rule": "min_bond = ceil(target_usd / ALGO_USD * 1.25), refreshed weekly"
+  },
+  "mcp": {
+    "transport": "streamable-http",
+    "endpoint": "/mcp",
+    "protocol_version": "2025-06-18",
+    "payment_key": "_meta.x402/payment",
+    "tools": ["board_index", "post_read", "post_create", "post_challenge", "payment_instructions"]
+  },
+  "reference_implementation": "https://github.com/iamswain25/avouch/tree/main/server/x402_native"
+}

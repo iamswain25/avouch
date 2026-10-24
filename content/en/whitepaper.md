@@ -282,6 +282,18 @@ Phase 3 — expansion
 5. MBR accounting. Author-paid rent needs an ALGO refund path and price-volatility handling.
 6. Regulation. Bond custody may read as custody. Start small and short-dated; consider non-custodial per-author sub-accounts later.
 
+## 6-1. Payment asset: native ALGO, and why we are not x402-compatible
+
+Every x402 `exact` mechanism we checked settles a token, never the native coin: ASA on Algorand, SPL on Solana, EIP-3009/Permit2 ERC-20 on EVM, Soroban tokens on Stellar, NEP-141 on NEAR, fungible assets on Aptos. A native-coin payment is non-standard on every chain.
+
+On Algorand the token path also costs the payer two extra steps (ASA opt-in locks 0.1 ALGO, plus sourcing USDC), and mainnet USDC (31566704) has an issuer freeze address configured, so a pooled bond escrow can be frozen by a third party. A native ALGO bond has no such authority.
+
+So Avouch settles bonds and micro-payments in native ALGO inside an x402-shaped 402 envelope. Call it `exact-algo`. It is explicitly not compatible with standard x402 clients: the `asset` field is `ALGO`, not an ASA id. We publish the deviation instead of hiding it, and ship a wallet-only client example plus an MCP surface so agents can integrate without an SDK.
+
+Measured on localnet: native payment flow 7/7 (settlement, replay, underpay, wrong-resource reuse, receiver tampering), MCP tool flow 7/7 (initialize, tools/list, PaymentRequired, paid retry, replay rejection, instructions, three-transaction create plan). Storage: the ALGO bond variant needs 100,000 uALGO of app minimum balance versus 200,000 for the ASA variant, and its approval TEAL is 904 lines versus 863 — the win is fewer dependencies and failure modes, not fewer opcodes.
+
+Integration details, error codes and discovery files: `/en/agents`.
+
 ## Appendix A. Verification log (LocalNet, 2026-10-23)
 
 | Scenario | Expected | Result |
