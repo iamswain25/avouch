@@ -1,0 +1,32 @@
+content/en/whitepaper.md
+  h_247fbbde292880 1-317
+nginx.conf
+  h_247fbbde292880 1-12,21-22,32-51,55-56,68-70
+scripts/build_whitepaper.py
+  h_247fbbde292880 2,5,7-13,26,30-54,58-63,70-71,82-83,89-127,133-134
+site/en/index.html
+  h_247fbbde292880 1-238
+site/en/whitepaper.html
+  h_247fbbde292880 1-651
+site/index.html
+  h_247fbbde292880 6-10,13-25,28-35
+site/ko/index.html
+  h_247fbbde292880 1-237
+site/ko/whitepaper.html
+  h_247fbbde292880 7-11,22
+site/robots.txt
+  h_247fbbde292880 1-4
+site/sitemap.xml
+  h_247fbbde292880 1-17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e7255d3ed0a37a263eb43b1642e8e95b0fbdba0a",
+  "prompts": {},
+  "humans": {
+    "h_247fbbde292880": {
+      "author": "swain <iamswain@hotmail.com>"
+    }
+  }
+}
