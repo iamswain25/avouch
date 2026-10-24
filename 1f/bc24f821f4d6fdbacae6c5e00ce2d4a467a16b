@@ -1,0 +1,54 @@
+LICENSE
+  h_247fbbde292880 1-21
+README.md
+  h_247fbbde292880 1,3,5,7-9,11,13-24,26,28-29,31,33,35-36,38,40-42,44,46,48-53,55,57,59,61,63,65
+content/en/whitepaper.md
+  h_247fbbde292880 5,259,298
+content/ko/whitepaper.md
+  h_247fbbde292880 296,337
+contracts/.gitignore
+  h_247fbbde292880 1-3
+contracts/README.md
+  h_247fbbde292880 1-90
+contracts/pyproject.toml
+  h_247fbbde292880 1-9
+contracts/scripts/bond_game_theory.py
+  h_247fbbde292880 1-116
+contracts/scripts/cost_report.py
+  h_247fbbde292880 1-81
+contracts/scripts/e2e_localnet.py
+  h_247fbbde292880 1-348
+contracts/src/artifacts/PostBond.approval.puya.map
+  h_247fbbde292880 1-6712
+contracts/src/artifacts/PostBond.approval.teal
+  h_247fbbde292880 1-863
+contracts/src/artifacts/PostBond.arc56.json
+  h_247fbbde292880 1-620
+contracts/src/artifacts/PostBond.clear.puya.map
+  h_247fbbde292880 1-25
+contracts/src/artifacts/PostBond.clear.teal
+  h_247fbbde292880 1-7
+contracts/src/post_bond.py
+  h_247fbbde292880 1-207
+docs/DEPLOY.md
+  h_247fbbde292880 32
+scripts/build_whitepaper.py
+  h_247fbbde292880 8-9,17,25-40,52,62,106-108,113,123,151
+site/en/whitepaper.html
+  h_247fbbde292880 31,557,622,646
+site/ko/index.html
+  h_247fbbde292880 208
+site/ko/whitepaper.html
+  h_247fbbde292880 608,675,706
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1fbc24f821f4d6fdbacae6c5e00ce2d4a467a16b",
+  "prompts": {},
+  "humans": {
+    "h_247fbbde292880": {
+      "author": "swain <iamswain@hotmail.com>"
+    }
+  }
+}
