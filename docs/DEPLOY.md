@@ -41,6 +41,31 @@ Pages → 프로젝트 → Custom domains → `avouchprotocol.com` 추가 (apex�
 
     호스트가 www.avouchprotocol.com 이면 301 → https://avouchprotocol.com/$1
 
+## 4-1. 보안 설정 (적용 완료)
+
+| 항목 | 값 | 위치 |
+| --- | --- | --- |
+| HTTPS 강제 | http → https 301 | Cloudflare 존 설정 |
+| HSTS | max-age=15552000 (180일) | `site/_headers` + 미들웨어 응답 |
+| CSP | `default-src 'self'; script-src 'self'; object-src 'none'; frame-ancestors 'self'; ...` | `site/_headers` |
+| X-Content-Type-Options / Referrer-Policy / X-Frame-Options | nosniff / strict-origin-when-cross-origin / SAMEORIGIN | `_headers` |
+| Permissions-Policy | geolocation·microphone·camera·payment 차단 | `_headers` |
+| COOP | same-origin | `_headers` |
+| 정식 호스트 단일화 | www → apex 301, `*.pages.dev` → apex 301 | `functions/_middleware.js` |
+| 인라인 JS 제거 | 스크립트는 `assets/lang.js`, `assets/route.js` (CSP `script-src 'self'` 유지) | `site/` |
+
+주의: `_headers`는 Function이 반환하는 응답에 적용되지 않는다. 리다이렉트 응답에도 HSTS를 넣어야 하면 미들웨어의 `Response` 헤더에 직접 넣는다(현재 그렇게 되어 있다).
+
+시크릿 점검(배포 전 반복):
+
+    grep -rn --exclude-dir=.git -E "cfut_[A-Za-z0-9_-]{10,}|BEGIN .*PRIVATE KEY" . || echo clean
+    git log -p --all | grep -cE "cfut_[A-Za-z0-9_-]{10,}|BEGIN .*PRIVATE KEY"   # 0이어야 함
+
+## 4-2. 남은 수동 설정 (대시보드 1회)
+
+- Pages → avouch → Settings → Builds & deployments → Preview deployments: **None** 권장. 배포마다 공개 URL(`<id>.avouch-cwh.pages.dev`)이 생기는데, 미들웨어가 apex로 301하도록 해두었지만 미리보기 자체를 끄는 편이 표면이 작다.
+- API 토큰(`avouch-dns-automation`, Zone·DNS·Edit)은 작업이 끝나면 Revoke 하거나 TTL을 짧게 유지한다.
+
 ## 5. 로케일 라우팅 (중요)
 
 - `functions/index.js`가 `/`만 처리한다: cookie `lang` → Accept-Language(q 순) → 기본 `en`. `Location: /ko/` 또는 `/en/`, `Vary: Accept-Language, Cookie`, `Cache-Control: no-store`.
