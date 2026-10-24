@@ -53,6 +53,27 @@
     docs/DEPLOY.md             Dynadot DNS, TLS, go-live 체크리스트
     scripts/build_whitepaper.py
 
-## 배포
+## 배포 — Cloudflare Pages
 
-`docs/DEPLOY.md` 참고. 요약: Dynadot에서 A 레코드(또는 Cloudflare NS 위임) → 리버스 프록시(Caddy/Cloudflare) 뒤에 컨테이너를 두고 8787은 외부에 열지 않는다. 이미지 태그는 `avouch-site:<git-sha>`.
+호스팅은 Cloudflare Pages(정적) + Pages Function 1개.
+
+| 설정 | 값 |
+| --- | --- |
+| Build command | (비움) — 생성된 HTML이 커밋되어 있다 |
+| Build output directory | `site` |
+| Functions | 루트 `functions/` 자동 인식 |
+
+- `functions/index.js`: `/`만 로케일 302 처리 (cookie → Accept-Language → en)
+- `site/_routes.json`: 함수 호출을 `/`로 제한, 나머지는 정적
+- `site/_headers`, `site/_redirects`: 보안 헤더·캐시 정책·슬래시 301
+- Cloudflare Pages는 `.html`을 확장자 없는 URL로 308 처리하므로 canonical은 `/ko/whitepaper`다. 링크·hreflang·sitemap 모두 그 형태
+- 도메인: Dynadot 네임서버를 Cloudflare로 위임 → Pages Custom domains에 apex + www 추가
+
+직접 업로드:
+
+    npx wrangler login
+    npx wrangler pages deploy site --project-name avouch
+
+셀프호스트 대안으로 같은 산출물을 nginx 이미지로도 서빙한다(`docker compose up -d`, 8787). nginx는 `try_files $uri $uri.html`로 Pages와 동일한 URL 체계를 흉내 낸다.
+
+자세한 절차: `docs/DEPLOY.md`
