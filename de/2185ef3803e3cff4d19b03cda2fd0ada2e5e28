@@ -1,0 +1,14 @@
+README.md
+  h_247fbbde292880 3,5,8-21,25-27,30-31,34,36-41
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "de2185ef3803e3cff4d19b03cda2fd0ada2e5e28",
+  "prompts": {},
+  "humans": {
+    "h_247fbbde292880": {
+      "author": "swain <iamswain@hotmail.com>"
+    }
+  }
+}
