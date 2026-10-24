@@ -1,0 +1,24 @@
+scripts/build_whitepaper.py
+  h_247fbbde292880 47,58,75-76,136
+site/_headers
+  h_247fbbde292880 2
+site/en/index.html
+  h_247fbbde292880 8-10
+site/en/whitepaper.html
+  h_247fbbde292880 7-8
+site/ko/index.html
+  h_247fbbde292880 8-10
+site/ko/whitepaper.html
+  h_247fbbde292880 7-8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f5fb85bd63230c0ecfd7f8f446d9c170fbe2f6ed",
+  "prompts": {},
+  "humans": {
+    "h_247fbbde292880": {
+      "author": "swain <iamswain@hotmail.com>"
+    }
+  }
+}
