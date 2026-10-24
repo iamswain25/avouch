@@ -1,0 +1,34 @@
+functions/_middleware.js
+  h_247fbbde292880 1-4,6,11,32-44,46-59
+scripts/build_whitepaper.py
+  h_247fbbde292880 82,90
+site/_headers
+  h_247fbbde292880 6-8
+site/_routes.json
+  h_247fbbde292880 3-4
+site/assets/lang.js
+  h_247fbbde292880 1-9
+site/assets/route.js
+  h_247fbbde292880 1-12
+site/en/index.html
+  h_247fbbde292880 16,29
+site/en/whitepaper.html
+  h_247fbbde292880 14,25
+site/index.html
+  h_247fbbde292880 13,25
+site/ko/index.html
+  h_247fbbde292880 16,29
+site/ko/whitepaper.html
+  h_247fbbde292880 14,25
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "dd2816f9afac0adfacbd8aa2943a56d2a306bffd",
+  "prompts": {},
+  "humans": {
+    "h_247fbbde292880": {
+      "author": "swain <iamswain@hotmail.com>"
+    }
+  }
+}
