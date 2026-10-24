@@ -1,0 +1,28 @@
+contracts/artifacts/PostBond.approval.teal
+  h_247fbbde292880 1-863
+contracts/artifacts/PostBond.arc56.json
+  h_247fbbde292880 1-620
+contracts/artifacts/PostBond.clear.teal
+  h_247fbbde292880 1-7
+contracts/artifacts/PostBondAlgo.approval.teal
+  h_247fbbde292880 1-904
+contracts/artifacts/PostBondAlgo.arc56.json
+  h_247fbbde292880 1-620
+contracts/artifacts/PostBondAlgo.clear.teal
+  h_247fbbde292880 1-7
+contracts/scripts/e2e_algo_localnet.py
+  h_247fbbde292880 1-335
+contracts/src/post_bond_algo.py
+  h_247fbbde292880 1-204
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5c9da63945b0c9e13f84187b6b50050cb2bf226d",
+  "prompts": {},
+  "humans": {
+    "h_247fbbde292880": {
+      "author": "swain <iamswain@hotmail.com>"
+    }
+  }
+}
