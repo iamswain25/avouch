@@ -1,0 +1,42 @@
+functions/_lib/algo.js
+  h_247fbbde292880 1-275
+functions/_lib/board.js
+  h_247fbbde292880 1-218
+functions/api/[[path]].js
+  h_247fbbde292880 1-77
+functions/api/ping.js
+  h_247fbbde292880 1-7
+functions/mcp.js
+  h_247fbbde292880 1-154
+schema.sql
+  h_247fbbde292880 1-15
+scripts/e2e_worker_localnet.py
+  h_247fbbde292880 1-213
+server/mcp/e2e_localnet.py
+  h_247fbbde292880 41-51,104
+server/x402_native/agent_client.py
+  h_247fbbde292880 34-44,84
+server/x402_native/e2e_localnet.py
+  h_247fbbde292880 43-53,159
+server/x402_native/verifier.py
+  h_247fbbde292880 132-134,136-138,207-217,224
+site/en/agents.html
+  h_247fbbde292880 34,140
+site/ko/agents.html
+  h_247fbbde292880 34,140
+site/llms.txt
+  h_247fbbde292880 21,26-29
+wrangler.toml
+  h_247fbbde292880 1-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8b8088132fe1edb9992a4758c4f4f36640592852",
+  "prompts": {},
+  "humans": {
+    "h_247fbbde292880": {
+      "author": "swain <iamswain@hotmail.com>"
+    }
+  }
+}
