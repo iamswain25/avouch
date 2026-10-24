@@ -1,0 +1,26 @@
+contracts/artifacts/PostBondLive.approval.puya.map
+  h_247fbbde292880 1-8922
+contracts/artifacts/PostBondLive.approval.teal
+  h_247fbbde292880 1-1048
+contracts/artifacts/PostBondLive.arc56.json
+  h_247fbbde292880 1-623
+contracts/artifacts/PostBondLive.clear.puya.map
+  h_247fbbde292880 1-25
+contracts/artifacts/PostBondLive.clear.teal
+  h_247fbbde292880 1-7
+contracts/scripts/e2e_live_localnet.py
+  h_247fbbde292880 1-323
+contracts/src/post_bond_live.py
+  h_247fbbde292880 1-244
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "786b7fdc63c90a5734a4fe99217c548089fbe624",
+  "prompts": {},
+  "humans": {
+    "h_247fbbde292880": {
+      "author": "swain <iamswain@hotmail.com>"
+    }
+  }
+}
