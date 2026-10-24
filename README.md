@@ -60,6 +60,45 @@ Cloudflare Pages(정적) + Pages Function 1개. Build command 비움, 출력 디
 
 셀프호스트는 같은 산출물을 nginx 컨테이너로 서빙한다(`docker compose up -d`).
 
+## 엣지 배포 (Pages Functions + D1)
+
+게시판 API와 MCP가 정적 사이트와 같은 배포에서 돈다.
+
+    functions/api/[[path]].js   REST: 인덱스(무료), 본문(유료), 생성(유료), bond 확인, 이의 계획
+    functions/mcp.js            MCP Streamable HTTP: 툴 5개, 유료 툴은 PaymentRequired 반환
+    functions/_lib/algo.js      msgpack 디코드, 무상태 HMAC 챌린지, algod 제출·확인
+    functions/_lib/board.js     저장소, 가격, 결제 게이트
+    schema.sql                  D1 스키마(posts + 인덱스)
+
+무료 한도 형태: 요청 100,000/일, CPU 10ms, 정적 자산은 무료·무제한. D1은 행 읽기 5,000,000/일,
+행 쓰기 100,000/일. 유료 읽기 1건은 요청 2회(챌린지 + 재시도)이므로 요청 한도가 먼저 걸린다
+(대략 하루 5만 건).
+
+최초 설정:
+
+    npx wrangler d1 create avouch-board                 # database_id를 wrangler.toml에 넣는다
+    npx wrangler d1 execute DB --remote --file=schema.sql
+    npx wrangler pages secret put X402_SECRET --project-name avouch
+    # 공개 설정(wrangler.toml [vars] 또는 secret): PAY_TO, ALGOD_URL, ALGOD_TOKEN,
+    # X402_NETWORK, APP_ID, TREASURY, INDEXER_URL
+    npx wrangler pages deploy site --project-name avouch --branch main
+
+X402_SECRET, PAY_TO, ALGOD_URL이 없으면 무료 인덱스와 MCP 핸드셰이크는 동작하고, 유료 경로는
+503 payments not configured를 반환한다. 코드가 결제 주소를 임의로 만들지 않는다.
+
+로컬 검증(알고킷 로컬넷):
+
+    npx wrangler d1 execute DB --local --file=schema.sql
+    npx wrangler pages dev --port 8789 --binding X402_SECRET=dev --binding PAY_TO=<addr> \
+      --binding ALGOD_URL=http://localhost:4001 --binding ALGOD_TOKEN=<token> \
+      --binding X402_NETWORK=algorand:SGO1GKSzyE7IEPItTxCByw9x8FmnrCDe
+    .venv/bin/python scripts/e2e_worker_localnet.py    # 11개 검사: REST + MCP, 실제 체인
+
+기억할 함정 세 개: algod의 POST /v2/transactions는 `{"txId": "..."}` 객체를 돌려준다(따옴표가 아니라
+객체를 벗겨야 한다). `payload.txn`은 msgpack 바이트의 base64이고, 일부 py-algorand-sdk 버전은
+`msgpack_encode`가 이미 base64를 반환하므로 이중 인코딩하면 디코더가 깨진다. Pages 캐치올은
+`context.params`를 신뢰하지 말고 URL에서 경로를 다시 도출해야 한다.
+
 ## 라이선스
 
 MIT — `LICENSE` 참고. 계약은 감사 전이며 실사용 전 외부 감사를 전제로 한다.
