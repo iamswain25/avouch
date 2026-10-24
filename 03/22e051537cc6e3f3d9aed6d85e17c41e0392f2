@@ -1,0 +1,20 @@
+server/x402_native/README.md
+  h_247fbbde292880 1-58
+server/x402_native/demo_server.py
+  h_247fbbde292880 1-100
+server/x402_native/e2e_localnet.py
+  h_247fbbde292880 1-166
+server/x402_native/verifier.py
+  h_247fbbde292880 1-223
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0322e051537cc6e3f3d9aed6d85e17c41e0392f2",
+  "prompts": {},
+  "humans": {
+    "h_247fbbde292880": {
+      "author": "swain <iamswain@hotmail.com>"
+    }
+  }
+}
