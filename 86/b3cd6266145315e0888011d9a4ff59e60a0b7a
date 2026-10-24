@@ -1,0 +1,14 @@
+contracts/scripts/v3_game_theory.py
+  h_247fbbde292880 43-44,61-63,78,158,160-166,168-174,187-188,190-195,209,215
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "86b3cd6266145315e0888011d9a4ff59e60a0b7a",
+  "prompts": {},
+  "humans": {
+    "h_247fbbde292880": {
+      "author": "swain <iamswain@hotmail.com>"
+    }
+  }
+}
