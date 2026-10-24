@@ -1,0 +1,22 @@
+README.md
+  h_247fbbde292880 24,29,61-63
+deploy/selfhost/Dockerfile
+  h_247fbbde292880 9
+deploy/selfhost/README.md
+  h_247fbbde292880 1-16
+deploy/selfhost/docker-compose.yml
+  h_247fbbde292880 3-6
+docs/DEPLOY.md
+  h_247fbbde292880 101
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "47734b1ef9f48391a42ddec21323150991570bbb",
+  "prompts": {},
+  "humans": {
+    "h_247fbbde292880": {
+      "author": "swain <iamswain@hotmail.com>"
+    }
+  }
+}
