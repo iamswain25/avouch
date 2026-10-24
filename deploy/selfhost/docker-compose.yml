@@ -1,7 +1,9 @@
 services:
   site:
-    build: .
-    image: avouch-site:dev
+    build:
+      context: ../..
+      dockerfile: deploy/selfhost/Dockerfile
+    image: avouch-site:selfhost
     container_name: avouch-site
     ports:
       - "8787:80"

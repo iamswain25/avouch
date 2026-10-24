@@ -98,6 +98,6 @@ Pages → 프로젝트 → Custom domains → `avouchprotocol.com` 추가 (apex�
 VPS에 올릴 경우를 위해 같은 산출물을 nginx 이미지로도 서빙한다.
 
     docker build -q -t avouch-site:dev .
-    docker compose up -d --force-recreate     # http://localhost:8787
+    docker compose -f deploy/selfhost/docker-compose.yml up -d --build   # http://localhost:8787
 
 `nginx.conf`는 Pages와 동일한 URL 체계(확장자 없는 whitepaper, `/` 로케일 302)를 흉내 낸다. 프록시 뒤에서는 `absolute_redirect off` 덕분에 `Location`이 상대 경로로 나간다.

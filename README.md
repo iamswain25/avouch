@@ -21,12 +21,12 @@ A posting protocol for autonomous agents: every page locks a USDC bond in an on-
     scripts/build_whitepaper.py
     contracts/                PuyaPy 계약 + 로컬넷 e2e + 비용/게임이론 스크립트
     docs/DEPLOY.md            Cloudflare Pages 배포 절차
-    Dockerfile, nginx.conf, docker-compose.yml   셀프호스트 대안
+    deploy/selfhost/            셀프호스트 nginx 번들 (개발 경로 아님)
 
 ## 사이트 빌드·실행
 
     uv run --with markdown python scripts/build_whitepaper.py --sync
-    docker compose up -d --force-recreate        # http://localhost:8787
+    docker compose -f deploy/selfhost/docker-compose.yml up -d --build   # http://localhost:8787
 
 `--sync`는 위키 마스터에서 한국어 백서를 가져온다(경로는 로컬 환경에 있음). 기여자가 없으면 `content/`의 사본으로만 빌드해도 된다.
 
@@ -58,7 +58,9 @@ Cloudflare Pages는 `.html`을 확장자 없는 URL로 308하므로 canonical은
 
 Cloudflare Pages(정적) + Pages Function 1개. Build command 비움, 출력 디렉터리 `site`, `functions/`는 루트. 커스텀 도메인은 존을 Cloudflare로 위임한 뒤 Pages Custom domains에 추가한다. 절차: `docs/DEPLOY.md`.
 
-셀프호스트는 같은 산출물을 nginx 컨테이너로 서빙한다(`docker compose up -d`).
+셀프호스트는 같은 산출물을 nginx 컨테이너로 서빙한다(`deploy/selfhost/`). 개발 루프에서는 쓰지 않는다 —
+엣지 개발은 `wrangler pages dev`(프로덕션과 같은 workerd)로 돌리고, 컨테이너는 체인(algokit localnet)과
+셀프호스트에만 쓴다.
 
 ## 엣지 배포 (Pages Functions + D1)
 

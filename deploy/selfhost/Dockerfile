@@ -6,7 +6,7 @@ LABEL org.opencontainers.image.title="avouch-site" \
       org.opencontainers.image.source="https://github.com/…/avouch"
 
 RUN rm -rf /usr/share/nginx/html/*
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY deploy/selfhost/nginx.conf /etc/nginx/conf.d/default.conf
 COPY site/ /usr/share/nginx/html/
 
 EXPOSE 80
