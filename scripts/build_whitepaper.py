@@ -53,7 +53,7 @@ def build() -> None:
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Avouch 백서 — 보증이 편집권이 되는 게시 프로토콜</title>
-<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/style.css?v=20261024b">
 </head>
 <body>
 <header class="nav">
