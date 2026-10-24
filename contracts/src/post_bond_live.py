@@ -13,18 +13,19 @@ New rule, and its cost:
     author WITHDRAWS the surplus down to the floor (min_bond) and keeps the rest staked.
   - The floor is the deterrence bond, so a withdrawn post is still challengeable at a
     meaningful stake, forever. Content and ruling history stay readable.
-  - Slashing is computed against the PEAK bond (the amount originally posted), capped by
-    what is actually held. Otherwise an author could withdraw to the floor and then get
-    slashed cheaply. A post whose bond falls below the floor is CLOSED: the box and the
-    content stay, the bond is gone, and the post is no longer challengeable.
+  - One ruling ends a post's bonded life. A guilty ruling forfeits a share of the bond,
+    closes the post and returns the rest to the author; the record stays readable for
+    audit, but the post is no longer challengeable. Correcting the record is a NEW post
+    with a NEW bond — punishing the same wounded post twice buys nothing.
+  - An innocent ruling (or an arbiter silence) leaves the post bonded and challengeable.
 
 State machine
 
   post_bond  -> OPEN        (bond locked, no deadline)
   withdraw   -> OPEN        (author takes the surplus above the floor; post stays bonded)
   challenge  -> CHALLENGED  (challenger bond locked, resolve_deadline set)
-  settle     -> OPEN        (forfeit or challenger refunded)  [+rulings]
-             -> CLOSED      (only when the remaining bond is below min_bond)
+  settle(guilty)    -> CLOSED (forfeit a share, remainder returned, record kept)
+  settle(innocent)  -> OPEN   (challenger refunded, bond untouched)
   release_stale -> OPEN     (anyone, arbiter silent past resolve_deadline)
 
 Invariant: challengeable == bonded. Nothing deletes a post; the only way it stops being
@@ -56,7 +57,6 @@ class Post(arc4.Struct):
     content_hash: arc4.DynamicBytes
     bond: arc4.UInt64
     challenger_bond: arc4.UInt64
-    bond_peak: arc4.UInt64
     resolve_deadline: arc4.UInt64
     status: arc4.UInt8
     rulings: arc4.UInt64
@@ -126,7 +126,6 @@ class PostBondLive(ARC4Contract):
             content_hash=content_hash.copy(),
             bond=arc4.UInt64(bond_txn.amount),
             challenger_bond=arc4.UInt64(0),
-            bond_peak=arc4.UInt64(bond_txn.amount),
             resolve_deadline=arc4.UInt64(0),
             status=arc4.UInt8(OPEN),
             rulings=arc4.UInt64(0),
@@ -171,37 +170,30 @@ class PostBondLive(ARC4Contract):
         post.resolve_deadline = arc4.UInt64(0)
         post.rulings = arc4.UInt64(post.rulings.native + UInt64(1))
 
+        bond = post.bond.native
+
         if guilty.native:
-            # computed on the peak bond so withdrawing to the floor does not cheapen the penalty
-            nominal = post.bond_peak.native * self.forfeit_bps.value // UInt64(10000)
-            forfeit = nominal if nominal <= post.bond.native else post.bond.native
+            # one ruling ends the bonded life of this post: forfeit a share, close it, return the rest
+            forfeit = bond * self.forfeit_bps.value // UInt64(10000)
             to_challenger = forfeit * self.challenger_share_bps.value // UInt64(10000)
             to_treasury = forfeit - to_challenger
-            post.bond = arc4.UInt64(post.bond.native - forfeit)
+            remainder = bond - forfeit
+            post.bond = arc4.UInt64(0)
             post.forfeited = arc4.UInt64(post.forfeited.native + forfeit)
-            out = to_treasury + challenger_bond + to_challenger
-            self.escrowed.value -= challenger_bond + forfeit
-            self._check_solvency(out)
+            post.status = arc4.UInt8(CLOSED)
+            self.escrowed.value -= bond + challenger_bond
+            self._check_solvency(remainder + challenger_bond + to_challenger + to_treasury)
             self._send(self.treasury.value.native, to_treasury)
             self._send(challenger, challenger_bond + to_challenger)
+            self._send(post.author.native, remainder)
         else:
+            # innocent (or the ruling goes the author's way): the post stays bonded and challengeable
+            post.status = arc4.UInt8(OPEN)
             self.escrowed.value -= challenger_bond
             self._check_solvency(challenger_bond)
             self._send(challenger, challenger_bond)
 
-        if post.bond.native >= self.min_bond.value:
-            # the post stays alive and stays challengeable
-            post.status = arc4.UInt8(OPEN)
-            self.posts[post_id] = post.copy()
-        else:
-            # bond drained: the post is closed but NOT deleted — the box and the content stay
-            remainder = post.bond.native
-            self.escrowed.value -= remainder
-            post.bond = arc4.UInt64(0)
-            post.status = arc4.UInt8(CLOSED)
-            self._check_solvency(remainder)
-            self._send(post.author.native, remainder)
-            self.posts[post_id] = post.copy()
+        self.posts[post_id] = post.copy()
 
     @arc4.abimethod
     def withdraw(self, post_id: arc4.UInt64, amount: UInt64) -> None:
