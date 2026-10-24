@@ -5,6 +5,11 @@ Remaining decisions under test
   2. block    — a retire is refused while a replacement pool exceeds this share of the bond
   3. decay    — how fast an archived slot's takeover floor falls back to min_bond
 
+Units: every amount below is a NUMERAIRE, not a price. The economics is scale-free — only the
+ratios G/B, p, phi and the correction delay Delta matter — so the same run reads as G=1 ALGO/day
+with B=10 ALGO. The contract stores microALGO; the peg to USD exists only because the value of a
+lie is usually USD-denominated.
+
 The questions the numbers must answer
   - Can a liar retire to escape an incoming correction, and what does that cost?
   - Is 10% enough, or does a retire-under-pool need a higher fee?
@@ -191,7 +196,8 @@ def summarize(rs: list[Outcome]) -> dict:
 
 def main() -> None:
     seeds = range(200)
-    print("기준: B=$1, G=$0.10/일, 탐지 10%/일, 교정자 5명($2씩), 교체 수수료 10%, T=365일, 시드 200")
+    print("기준(단위=누메레르): B=1, G=0.10/일, 탐지 5%/일, 교정자 5명(각 2), 교체 수수료 10%, T=365일, 시드 200")
+    print("  ALGO 표기로는 B=10 ALGO, G=1 ALGO/일, 교체 수수료 1 ALGO — 비율이 같으면 결과도 같다")
     print()
     print(f"{'phi_ret':>8}{'phi_ret_pool':>13}{'block':>7}{'decay':>7}{'거짓노출일':>10}{'도피':>6}{'반격':>6}{'거짓말EV':>10}{'트레저리':>10}{'슬롯보증':>9}")
     rows = []
