@@ -1,0 +1,16 @@
+content/ko/whitepaper.md
+  h_247fbbde292880 3
+site/ko/whitepaper.html
+  h_247fbbde292880 29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "de42841a7848ac7a51e3bbd6fa7eafd7c43fd90a",
+  "prompts": {},
+  "humans": {
+    "h_247fbbde292880": {
+      "author": "swain <iamswain@hotmail.com>"
+    }
+  }
+}
