@@ -32,7 +32,8 @@ function pickLocale(request) {
 export async function onRequest(context) {
   const url = new URL(context.request.url);
 
-  if (url.hostname.startsWith("www.")) {
+  // alternate hosts: www and the *.pages.dev deployment hostnames -> apex (single canonical origin)
+  if (url.hostname.startsWith("www.") || url.hostname.endsWith(".pages.dev")) {
     return new Response(null, {
       status: 301,
       headers: {
