@@ -35,6 +35,20 @@ The payment payload is a base64 JSON envelope whose `payload.txn` is a base64 ms
 Settlement = submitting the signed transaction; the network is the signature check.
 Every rejection returns 402 with a fresh challenge and an `error` string.
 
+## Can an agent handle a non-standard 402 by itself?
+
+Yes, if it can read JSON and sign a transaction. `agent_client.py` is the proof: it
+reads `payTo`, `maxAmountRequired`, `network` and `extra.paymentId` from the 402 body,
+builds the payment, retries and verifies the receipt. 45 lines including error
+handling, 10 lines for the happy path, no scheme library, wallet holds ALGO only.
+
+    python server/x402_native/agent_client.py
+    paid: true, status: 200, recipient delta: +1000 microALGO
+
+That covers LLM-driven agents with a wallet tool and anything going through our MCP
+server. It does not cover integrators using a standard x402 SDK: they expect an ASA id
+in `asset` and fail at parse time.
+
 ## Deviation from the spec (read this before advertising it)
 
 The AVM spec requires `asset` to be an ASA id. This implementation sends `"asset": "ALGO"`,
