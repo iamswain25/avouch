@@ -1,0 +1,40 @@
+content/en/whitepaper.md
+  h_247fbbde292880 285-296
+content/ko/whitepaper.md
+  h_247fbbde292880 108-161,197-198,416-417
+server/mcp/avouch_mcp.py
+  h_247fbbde292880 1-341
+server/mcp/e2e_localnet.py
+  h_247fbbde292880 1-183
+site/.well-known/agent.json
+  h_247fbbde292880 1-27
+site/.well-known/exact-algo.json
+  h_247fbbde292880 1-61
+site/en/agents.html
+  h_247fbbde292880 1-155
+site/en/index.html
+  h_247fbbde292880 7,29,43,83-84,121,131,206
+site/en/whitepaper.html
+  h_247fbbde292880 582-587
+site/ko/agents.html
+  h_247fbbde292880 1-155
+site/ko/index.html
+  h_247fbbde292880 7,29,43,83-84,121,131,206
+site/ko/whitepaper.html
+  h_247fbbde292880 211-321,411,812-813
+site/llms.txt
+  h_247fbbde292880 1-31
+site/sitemap.xml
+  h_247fbbde292880 25-36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9477cc1b1a36599196be9cf1eea2f4a5b197f7c3",
+  "prompts": {},
+  "humans": {
+    "h_247fbbde292880": {
+      "author": "swain <iamswain@hotmail.com>"
+    }
+  }
+}
