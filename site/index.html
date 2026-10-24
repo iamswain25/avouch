@@ -10,19 +10,7 @@
 <link rel="alternate" hreflang="x-default" href="/en/">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/style.css?v=20261024b">
-<script>
-(function () {
-  // 1) explicit choice, 2) browser languages, 3) English default
-  var saved = null;
-  try { saved = localStorage.getItem('avouch_lang'); } catch (e) {}
-  var cookie = document.cookie.match(/(?:^|;\s*)lang=([^;]+)/);
-  if (cookie) saved = decodeURIComponent(cookie[1]);
-  var langs = navigator.languages || [navigator.language || 'en'];
-  var lang = saved === 'ko' || saved === 'en' ? saved
-    : (langs.join(',').toLowerCase().indexOf('ko') === 0 ? 'ko' : 'en');
-  location.replace('/' + lang + '/');
-})();
-</script>
+<script src="assets/route.js"></script>
 </head>
 <body>
 <div class="wrap" style="padding:80px 24px">

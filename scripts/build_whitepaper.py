@@ -79,6 +79,7 @@ PAGE = """<!doctype html>
 <link rel="alternate" hreflang="x-default" href="/en/whitepaper">
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/style.css?v=20261024b">
+<script src="../assets/lang.js" defer></script>
 </head>
 <body>
 <header class="nav">
@@ -86,7 +87,7 @@ PAGE = """<!doctype html>
     <div class="brand"><a href="./" style="color:inherit">AVOUCH<span>.</span></a></div>
     <nav class="nav-links">
 {nav_links}
-      <a href="{other_href}" onclick="document.cookie='lang={other_code};path=/;max-age=31536000';localStorage.setItem('avouch_lang','{other_code}')">{other_label}</a>
+      <a href="{other_href}" data-lang="{other_code}">{other_label}</a>
     </nav>
   </div>
 </header>
