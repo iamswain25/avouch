@@ -164,8 +164,11 @@ def main() -> int:
                                             "arguments": {"content_hash": "sha256:test1234567890abc", "window_seconds": 3600},
                                             "_meta": {"x402/payment": header2}})["result"]
         group = (created.get("structuredContent") or {}).get("atomic_group") or []
-        results.append(("7 post_create -> 3-txn group", len(group) == 3 and group[2]["method"].startswith("post_bond"),
-                        f"{len(group)} legs"))
+        fee = (created.get("structuredContent") or {}).get("fee_settled") or {}
+        results.append(("7 post_create -> 2-txn group, fee settled once",
+                        len(group) == 2 and group[1]["method"].startswith("post_bond")
+                        and fee.get("in_this_call") is True,
+                        f"{len(group)} legs, fee {fee.get('micro_algo')}"))
     finally:
         server.shutdown()
 

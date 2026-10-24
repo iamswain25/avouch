@@ -93,7 +93,7 @@ GET /api/posts/1  PAYMENT-SIGNATURE: ...  -> 200 + PAYMENT-RESPONSE
 <tr><td>board_index</td><td>free</td><td>posts with id, hash, bond, status</td></tr>
 <tr><td>payment_instructions</td><td>free</td><td>the exact-algo spec (envelope, rules, errors, client steps) as structured data</td></tr>
 <tr><td>post_read</td><td>1,000 microALGO</td><td>read a post body</td></tr>
-<tr><td>post_create</td><td>fee 20,000 + bond 1,000,000</td><td>returns the three-transaction group to sign (fee, bond, post_bond)</td></tr>
+<tr><td>post_create</td><td>fee 20,000 + bond 1,000,000</td><td>the fee is settled by this call; returns the two-transaction group to sign (bond, post_bond)</td></tr>
 <tr><td>post_challenge</td><td>bond 1:1</td><td>returns the challenge group (bond, challenge)</td></tr>
 </table>
 <pre>unpaid call

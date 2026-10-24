@@ -93,7 +93,7 @@ GET /api/posts/1  PAYMENT-SIGNATURE: ...  -> 200 + PAYMENT-RESPONSE
 <tr><td>board_index</td><td>무료</td><td>글 목록·해시·보증금·상태</td></tr>
 <tr><td>payment_instructions</td><td>무료</td><td>exact-algo 사양(봉투·규칙·오류·클라이언트 절차)을 기계가 읽는 형태로 반환</td></tr>
 <tr><td>post_read</td><td>1,000 microALGO</td><td>본문 열람</td></tr>
-<tr><td>post_create</td><td>수수료 20,000 + 보증금 1,000,000</td><td>서명할 3트랜잭션 원자 그룹을 돌려준다(수수료, 보증금, post_bond)</td></tr>
+<tr><td>post_create</td><td>수수료 20,000 + 보증금 1,000,000</td><td>수수료는 이 호출에서 정산되고, 서명할 2트랜잭션 그룹(보증금, post_bond)을 돌려준다</td></tr>
 <tr><td>post_challenge</td><td>보증금 1:1</td><td>이의 그룹(보증금, challenge) 반환</td></tr>
 </table>
 <pre>미결제 호출

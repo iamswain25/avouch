@@ -168,14 +168,17 @@ class Board:
             resource = "/mcp/post_create"
             if not payment_header:
                 return self._payment_required(resource, CREATE_FEE, "post fee")
+            # The fee was settled by this call, so the group the client signs carries only
+            # the bond and the app call. Putting the fee inside the group as well would
+            # charge it twice.
             plan = {
                 "atomic_group": [
-                    {"index": 0, "txn": "pay", "from": "author", "to": "treasury", "amount_micro_algo": CREATE_FEE},
-                    {"index": 1, "txn": "pay", "from": "author", "to": "app_escrow", "amount_micro_algo": MIN_BOND},
-                    {"index": 2, "txn": "appl", "method": "post_bond(pay,uint64,byte[],uint64)",
-                     "args": ["<group index 1>", "<post_id>", content_hash, str(window)]},
+                    {"index": 0, "txn": "pay", "from": "author", "to": "app_escrow", "amount_micro_algo": MIN_BOND},
+                    {"index": 1, "txn": "appl", "method": "post_bond(pay,uint64,byte[],uint64)",
+                     "args": ["<group index 0>", "<post_id>", content_hash, str(window)]},
                 ],
-                "note": "the fee leg (index 0) is the payment already settled for this call; sign the group with the same author account",
+                "fee_settled": {"micro_algo": CREATE_FEE, "in_this_call": True},
+                "note": "fee already settled for this call; sign this 2-transaction group with the same author account",
             }
             return self._settle_and(payment_header, resource, plan)
 
