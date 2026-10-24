@@ -1,0 +1,60 @@
+.wrangler/cache/cf.json
+  h_247fbbde292880 1
+.wrangler/tmp/bundle-0hklFg/middleware-insertion-facade.js
+  h_247fbbde292880 1-11
+.wrangler/tmp/bundle-0hklFg/middleware-loader.entry.ts
+  h_247fbbde292880 1-134
+.wrangler/tmp/bundle-mK4bLw/middleware-insertion-facade.js
+  h_247fbbde292880 1-11
+.wrangler/tmp/bundle-mK4bLw/middleware-loader.entry.ts
+  h_247fbbde292880 1-134
+.wrangler/tmp/dev-x34qlf/o61c1eztoki.js
+  h_247fbbde292880 1-1856
+.wrangler/tmp/dev-x34qlf/o61c1eztoki.js.map
+  h_247fbbde292880 1-8
+.wrangler/tmp/pages-5nVm8n/functionsRoutes-0.5035383826050477.mjs
+  h_247fbbde292880 1-19
+.wrangler/tmp/pages-5nVm8n/functionsWorker-0.2635654244897552.mjs
+  h_247fbbde292880 1-1610
+.wrangler/tmp/pages-5nVm8n/functionsWorker-0.2635654244897552.mjs.map
+  h_247fbbde292880 1-8
+.wrangler/tmp/pages-5nVm8n/o61c1eztoki.js
+  h_247fbbde292880 1-36
+.wrangler/tmp/pages-5nVm8n/o61c1eztoki.js.map
+  h_247fbbde292880 1-7
+docs/DEPLOY.md
+  h_247fbbde292880 1,4-5,7,9,11-13,15,17,19-24,26,28,30,32-34,36,38,40,42,44-49,51,53-57,59-69,71,73,75-76,78
+functions/index.js
+  h_247fbbde292880 1-44
+nginx.conf
+  h_247fbbde292880 72-73
+scripts/build_whitepaper.py
+  h_247fbbde292880 36,46,59-61,68,83
+site/_headers
+  h_247fbbde292880 1-23
+site/_redirects
+  h_247fbbde292880 1-2
+site/_routes.json
+  h_247fbbde292880 1-5
+site/en/index.html
+  h_247fbbde292880 24,43,229
+site/en/whitepaper.html
+  h_247fbbde292880 7-9,16,18-21,647
+site/ko/index.html
+  h_247fbbde292880 24,43,229
+site/ko/whitepaper.html
+  h_247fbbde292880 7-9,16,18-21,707
+site/sitemap.xml
+  h_247fbbde292880 15-24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5a4e59daaa3d7768788a1258d7210d6d2b3dba93",
+  "prompts": {},
+  "humans": {
+    "h_247fbbde292880": {
+      "author": "swain <iamswain@hotmail.com>"
+    }
+  }
+}
