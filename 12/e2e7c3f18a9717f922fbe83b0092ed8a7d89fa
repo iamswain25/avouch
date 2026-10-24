@@ -1,0 +1,20 @@
+scripts/build_whitepaper.py
+  h_247fbbde292880 56
+site/favicon.svg
+  h_247fbbde292880 1-5
+site/index.html
+  h_247fbbde292880 8
+site/whitepaper.html
+  h_247fbbde292880 7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "12e2e7c3f18a9717f922fbe83b0092ed8a7d89fa",
+  "prompts": {},
+  "humans": {
+    "h_247fbbde292880": {
+      "author": "swain <iamswain@hotmail.com>"
+    }
+  }
+}
