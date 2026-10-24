@@ -1,0 +1,5 @@
+# 이미지에는 site/ 와 nginx.conf 만 들어간다
+*
+!site/
+!nginx.conf
+site/**/*.DS_Store
