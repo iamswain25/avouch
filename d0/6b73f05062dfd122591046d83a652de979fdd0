@@ -1,0 +1,14 @@
+docs/DEPLOY.md
+  h_247fbbde292880 3-4,6,8,10-12,14,17-19,23-29,31,33,35-36,38,40-47,49,51-55,63-67
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d06b73f05062dfd122591046d83a652de979fdd0",
+  "prompts": {},
+  "humans": {
+    "h_247fbbde292880": {
+      "author": "swain <iamswain@hotmail.com>"
+    }
+  }
+}
