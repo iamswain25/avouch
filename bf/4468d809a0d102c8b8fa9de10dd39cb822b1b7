@@ -1,0 +1,20 @@
+server/mcp/avouch_mcp.py
+  h_247fbbde292880 171-173,176-178,180-181
+server/mcp/e2e_localnet.py
+  h_247fbbde292880 167-171
+site/en/agents.html
+  h_247fbbde292880 96
+site/ko/agents.html
+  h_247fbbde292880 96
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bf4468d809a0d102c8b8fa9de10dd39cb822b1b7",
+  "prompts": {},
+  "humans": {
+    "h_247fbbde292880": {
+      "author": "swain <iamswain@hotmail.com>"
+    }
+  }
+}
