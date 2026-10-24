@@ -1,5 +1,6 @@
 // Cloudflare Pages middleware (runs for every route in _routes.json include)
-// 1) www.avouchprotocol.com/* -> 301 https://avouchprotocol.com/* (canonical host)
+// 1) www and *.pages.dev -> 301 apex (canonical host) — except /api/* and /mcp, so a
+//    preview deployment can be exercised end to end on its own hostname
 // 2) "/" -> 302 /ko/ or /en/ (cookie -> Accept-Language q-order -> English)
 // Everything else falls through to the static asset.
 
@@ -32,8 +33,10 @@ function pickLocale(request) {
 export async function onRequest(context) {
   const url = new URL(context.request.url);
 
-  // alternate hosts: www and the *.pages.dev deployment hostnames -> apex (single canonical origin)
-  if (url.hostname.startsWith("www.") || url.hostname.endsWith(".pages.dev")) {
+  // API and MCP stay reachable on preview/deployment hostnames; only pages are canonicalised
+  const isApi = url.pathname === "/mcp" || url.pathname.startsWith("/api/");
+
+  if (!isApi && (url.hostname.startsWith("www.") || url.hostname.endsWith(".pages.dev"))) {
     return new Response(null, {
       status: 301,
       headers: {
