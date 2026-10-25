@@ -112,6 +112,7 @@ a signed voucher, where the operator cannot hold the funds) is the next step, no
 release.
 
     python scripts/credit_smoke.py --reads 10 --slot <slot>   # 9 checks against a local edge
+    python scripts/refund_credit.py --network testnet --idle-days 30   # pay unspent balance back
 
 ## Read revenue (maintainer share)
 

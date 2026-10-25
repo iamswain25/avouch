@@ -23,6 +23,7 @@ export function bytesToHex(bytes) {
 }
 
 // base32 (RFC 4648, no padding) — Algorand addresses
+
 export function decodeAddress(addr) {
   const clean = addr.trim().toUpperCase().replace(/=+$/, "");
   let bits = 0;
@@ -269,6 +270,8 @@ export async function verifyPayment({ headerB64, resource, secret, payTo, algod,
     transaction: txid,
     network,
     confirmedRound: info["confirmed-round"],
+    // some nodes omit sender in the pending info; the refund job resolves the payer from the
+    // deposit transaction instead of trusting this field
     payer: info.sender || null,
     amount: Number(txn.amt),
   };

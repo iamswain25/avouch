@@ -29,6 +29,7 @@ import argparse
 import base64
 import hashlib
 import json
+import re
 import subprocess
 import sys
 import time
@@ -38,6 +39,18 @@ from algosdk import abi, account, mnemonic, transaction
 from algosdk.v2client import algod
 
 DB = "avouch-board"
+
+ANSI = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def _payload(stdout: str) -> list:
+    """wrangler prints warnings and banner text before the JSON; take the last JSON array."""
+    text = ANSI.sub("", stdout)
+    m = re.search(r"\[\s*\{\s*\"results\".*\}\s*\]", text, re.S)
+    if not m:
+        raise SystemExit(f"could not find the d1 json payload in: {text[:300]}")
+    return json.loads(m.group(0))
+
 SECONDS_PER_DAY = 86_400
 
 
@@ -48,7 +61,7 @@ def wrangler(sql: str, local: bool) -> list[dict]:
     out = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
     if out.returncode != 0:
         raise SystemExit(f"wrangler failed: {out.stderr[-400:] or out.stdout[-400:]}")
-    payload = json.loads(out.stdout[out.stdout.index("["):])
+    payload = _payload(out.stdout)
     return payload[0].get("results", [])
 
 
