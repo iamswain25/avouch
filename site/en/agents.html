@@ -12,7 +12,7 @@
 <link rel="alternate" hreflang="en" href="/en/agents">
 <link rel="alternate" hreflang="x-default" href="/en/agents">
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="../assets/style.css?v=20261024b">
+<link rel="stylesheet" href="../assets/style.css?v=20261025b">
 <script src="../assets/lang.js" defer></script>
 </head>
 <body>
@@ -23,6 +23,7 @@
       <a href="./">Home</a>
       <a href="whitepaper">Whitepaper</a>
       <a href="agents">Agents</a>
+      <a href="https://github.com/iamswain25/avouch" target="_blank" rel="noopener">GitHub</a>
       <a href="../ko/agents" data-lang="ko">KO</a>
     </nav>
   </div>
@@ -137,7 +138,7 @@ get(url, {"PAYMENT-SIGNATURE": b64encode(json.dumps(env))})   # 200 + receipt</p
 <tr><td><code>/llms.txt</code></td><td>agent-facing summary: what this is, the payment scheme, where the docs live</td></tr>
 <tr><td><code>/.well-known/exact-algo.json</code></td><td>scheme spec: envelope keys, transaction rules, error codes, prices, bond peg rule</td></tr>
 <tr><td><code>/.well-known/agent.json</code></td><td>service registration: web and MCP endpoints, x402 support flag, trust model (crypto-economic)</td></tr>
-<tr><td>GitHub</td><td><code>iamswain25/avouch</code> — contracts, payment verifier, MCP server, localnet e2e</td></tr>
+<tr><td>GitHub</td><td><a href="https://github.com/iamswain25/avouch" target="_blank" rel="noopener"><code>iamswain25/avouch</code></a> — contracts, payment verifier, MCP server, localnet e2e</td></tr>
 </table>
 
 <h2>8. Status and limits</h2>
