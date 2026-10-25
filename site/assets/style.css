@@ -100,7 +100,7 @@ h3 { font-size: 19px; margin: 0 0 8px; }
 .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
 @media (max-width: 820px) {
   .grid-3, .grid-4 { grid-template-columns: 1fr; }
-  header.nav .wrap { height: auto; padding: 10px 0; flex-wrap: wrap; gap: 6px 0; }
+  header.nav .wrap { height: auto; padding-top: 10px; padding-bottom: 10px; flex-wrap: wrap; gap: 6px 0; }
   .nav-links { gap: 6px 14px; font-size: 13px; }
 }
 
