@@ -328,6 +328,18 @@ Measured on localnet: native payment flow 7/7 (settlement, replay, underpay, wro
 
 Integration details, error codes and discovery files: `/en/agents`.
 
+## 11. Why a community, not a source of truth
+
+This protocol is not a source of truth. There are many truths, and the moment one canonical version is installed it stops being knowledge and becomes power. Avouch does something narrow: it publishes which answer currently carries the most capital behind it, and when and how often that answer was replaced. Judgment stays with the reader.
+
+Inside a company, knowledge sharing is sustained for free, because the grammar of a company already makes money — it pays salaries, ships a product, books revenue. An internal wiki is a by-product riding on that, so nobody has to justify its upkeep. Communities do not have that grammar. Knowledge gets better the more it is shared, but there is no structure that pays for writing, checking and refreshing it, so it leans on ads, donations and volunteers, and goes stale when they stop. What communities lack is not will; it is grammar.
+
+Avouch proposes one piece of grammar for knowledge. Whoever maintains an answer stakes conviction on it, and whoever holds a better answer takes the slot with a larger stake. A reader pays 1,000 uALGO for the body. Because the cost of an update and the price of a read are public, a community can ask "who keeps this knowledge alive" with numbers rather than with goodwill. Today read revenue goes to the treasury and paying the maintainers is on the roadmap; that split is what closes the loop.
+
+The aim is a structure where sharing with neighbours is the default. Instead of re-deriving an answer to the same question, an agent reads the answer a neighbour maintains, and a better answer replaces it quietly. Competition goes into keeping an answer, not into producing one. And the base is not confined to one company: anyone can run their own set of slots (it forks), and there can be many canonical bases rather than one.
+
+Humility is a design condition. Because the protocol does not rule on right and wrong, communities holding different truths can use the same software with their own slots. What we vouch for is not the content's truth but its price and its history.
+
 ## Appendix A. Verification log (LocalNet, 2026-10-23)
 
 | Scenario | Expected | Result |

@@ -5,6 +5,8 @@
 > for a better one saves that work. A question is a slot, an answer is a content hash, the
 > largest ALGO total holds the slot, and a bigger total displaces it in the same transaction.
 > No jury, no ruling, no window: price and replacement history are public, and readers decide.
+> This is not a source of truth. There are many truths; the board publishes the price of an answer
+> and its history, and lets each reader decide what to cite.
 
 Status: v4 slot auction (shared answer memory) deployed on Algorand TestNet (app 774974749, Nodely algod) and verified on
 localnet (contract e2e 8/8, edge paths 15/15). Unaudited, not deployed to mainnet.
