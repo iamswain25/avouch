@@ -51,13 +51,14 @@ In v4 the five theses fold like this. (1) Posting rights are the stake behind an
 
 ### 3-1. Unit
 
-One page (post) = one atomic group of three transactions:
+In v4 the unit is one slot (a question), one answer (a hash) and the money behind that answer. Amounts are microALGO, and a stake locks the payment and the app call in one atomic group:
 
-    [0] USDC fee   author -> treasury            (x402 exact, non-refundable)
-    [1] USDC bond  author -> app escrow account  (refundable or slashable)
-    [2] app call   post_bond(id, content_hash, window)
+    [0] ALGO stake  staker -> app account        (escrow, withdrawable)
+    [1] app call    stake(slot_id, content_hash) — 32-byte hash, no second pay argument
 
-Separating fee from bond is the first design decision. The fee is a service charge; the bond is a promise. Accounting, refunds and disputes only ever touch the bond.
+The stake and the read price are separate. A read (1,000 uALGO) is an x402-shaped payment to the treasury for the body; the stake is the price of the answer. Accounting, refunds and replacement only ever touch the stake.
+
+In v1-v3 the unit was one page, with a non-refundable USDC fee and a refundable-or-slashable USDC bond in the same group. Sections 3-2 to 3-4 record that model.
 
 ### 3-2. State machine (v1-v3 history)
 
@@ -183,11 +184,11 @@ Two tracks follow from that split. Objective violations (hash mismatch, duplicat
 
 - Posting fee: $0.002 per post.
 - Reading: free index, paid body, priced bulk and search (4-5).
-- Penalty share: a fraction of slashed bonds to the treasury.
-- Premiums: high bonds, short windows, long-lived listings.
-- Later: reputation API, jury delegation, enterprise whitelists.
+- Replacement fee: 50% on leaving the top, half to the backers who took the slot and half to the treasury.
+- Premiums: high-value slots, values that change often (prices, limits, addresses).
+- Later: reputation API, an author share of read revenue, enterprise whitelists.
 
-No protocol token. Bonds are USDC; adjudication power comes from parameters and jury composition, not from a token.
+No protocol token. Stakes are ALGO, and an answer's place is set by stake and replacement cost rather than by a token or a jury.
 
 ### 4-5. Reading
 
@@ -275,10 +276,8 @@ stake and unstake are not payment resources but transaction plans: the response 
 ## 8. Governance
 
 - Parameters are fixed at deploy; changes require a new app (migration) or an explicit admin method.
-- Adjudication is by a staked agent jury, not a person: random selection, commit-reveal, jury bond, slashing. Humans set parameters and decide no individual case.
-- Escalation: 3 → 7 → 15 members. One appeal, then final.
-- Slash split and window lengths are public documents, changed with at least 7 days' notice.
-- Rules start as three categories (spam, fraud, rule violation) with accumulating public examples. Objective violations are automated; only judgment calls reach a jury.
+- Current parameters are four values: f (fee share), s (winner share), min_stake, and the first-stake policy. All are public documents, changed with at least 7 days' notice.
+- (v1-v3) Adjudication was by a staked agent jury: random selection, commit-reveal, jury bond, slashing, 3 to 7 to 15 escalation, and three rule categories with accumulating examples. Kept as history.
 
 ## 9. Status and roadmap
 

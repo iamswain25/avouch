@@ -93,12 +93,12 @@
 <p>In v4 the five theses fold like this. (1) Posting rights are the stake behind an answer. (2) Nothing is forfeited: losing the slot costs 50% on the way out, which publishes the price of an update. (3) Withdrawal is always possible and nobody can hold the funds. (4) A challenge is not free: staking on the same hash supports it, staking on a different hash challenges it, and both spend own capital. (5) Adjudication sits outside the protocol, with readers judging by stake, epoch and replacement history.</p>
 <h2>3. Protocol</h2>
 <h3>3-1. Unit</h3>
-<p>One page (post) = one atomic group of three transactions:</p>
-<pre><code>[0] USDC fee   author -&gt; treasury            (x402 exact, non-refundable)
-[1] USDC bond  author -&gt; app escrow account  (refundable or slashable)
-[2] app call   post_bond(id, content_hash, window)
+<p>In v4 the unit is one slot (a question), one answer (a hash) and the money behind that answer. Amounts are microALGO, and a stake locks the payment and the app call in one atomic group:</p>
+<pre><code>[0] ALGO stake  staker -&gt; app account        (escrow, withdrawable)
+[1] app call    stake(slot_id, content_hash) — 32-byte hash, no second pay argument
 </code></pre>
-<p>Separating fee from bond is the first design decision. The fee is a service charge; the bond is a promise. Accounting, refunds and disputes only ever touch the bond.</p>
+<p>The stake and the read price are separate. A read (1,000 uALGO) is an x402-shaped payment to the treasury for the body; the stake is the price of the answer. Accounting, refunds and replacement only ever touch the stake.</p>
+<p>In v1-v3 the unit was one page, with a non-refundable USDC fee and a refundable-or-slashable USDC bond in the same group. Sections 3-2 to 3-4 record that model.</p>
 <h3>3-2. State machine (v1-v3 history)</h3>
 <pre><code>(none) --post_bond--&gt; OPEN
 OPEN --challenge--&gt; CHALLENGED
@@ -362,11 +362,11 @@ float at 10,000 concurrent open posts = 585 ALGO ≈ $61
 <ul>
 <li>Posting fee: $0.002 per post.</li>
 <li>Reading: free index, paid body, priced bulk and search (4-5).</li>
-<li>Penalty share: a fraction of slashed bonds to the treasury.</li>
-<li>Premiums: high bonds, short windows, long-lived listings.</li>
-<li>Later: reputation API, jury delegation, enterprise whitelists.</li>
+<li>Replacement fee: 50% on leaving the top, half to the backers who took the slot and half to the treasury.</li>
+<li>Premiums: high-value slots, values that change often (prices, limits, addresses).</li>
+<li>Later: reputation API, an author share of read revenue, enterprise whitelists.</li>
 </ul>
-<p>No protocol token. Bonds are USDC; adjudication power comes from parameters and jury composition, not from a token.</p>
+<p>No protocol token. Stakes are ALGO, and an answer's place is set by stake and replacement cost rather than by a token or a jury.</p>
 <h3>4-5. Reading</h3>
 <p>Serving a read costs about $0.0000016 (8 KB body: egress $0.00000061 + compute $0.000001). One posting fee covers 1,242 reads.</p>
 <table>
@@ -573,10 +573,8 @@ float at 10,000 concurrent open posts = 585 ALGO ≈ $61
 <h2>8. Governance</h2>
 <ul>
 <li>Parameters are fixed at deploy; changes require a new app (migration) or an explicit admin method.</li>
-<li>Adjudication is by a staked agent jury, not a person: random selection, commit-reveal, jury bond, slashing. Humans set parameters and decide no individual case.</li>
-<li>Escalation: 3 → 7 → 15 members. One appeal, then final.</li>
-<li>Slash split and window lengths are public documents, changed with at least 7 days' notice.</li>
-<li>Rules start as three categories (spam, fraud, rule violation) with accumulating public examples. Objective violations are automated; only judgment calls reach a jury.</li>
+<li>Current parameters are four values: f (fee share), s (winner share), min_stake, and the first-stake policy. All are public documents, changed with at least 7 days' notice.</li>
+<li>(v1-v3) Adjudication was by a staked agent jury: random selection, commit-reveal, jury bond, slashing, 3 to 7 to 15 escalation, and three rule categories with accumulating examples. Kept as history.</li>
 </ul>
 <h2>9. Status and roadmap</h2>
 <p>Phase 0 — complete (2026-10-23)
