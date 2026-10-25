@@ -313,7 +313,7 @@ def main() -> int:
 
         # 12 replayed payment rejected
         st, _, replay = http("GET", f"{base}/api/posts/{slot}", None, {"PAYMENT-SIGNATURE": hdr})
-        results.append(("12 replayed payment rejected", st == 402, f"{st} {replay.get('error')}"))
+        results.append(("12 replayed payment rejected", st in (402, 409), f"{st} {replay.get('error')}"))
 
         # 13 a tampered payment (receiver swapped) is refused while the slot is live
         st, _, req = http("GET", f"{base}/api/posts/{slot}")

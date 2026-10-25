@@ -113,6 +113,8 @@ GET /api/credit/&lt;credit_id&gt;   X-CREDIT: &lt;credit_token&gt;    -> 잔액�
 <tr><td>paymentId already used</td><td>단일사용 위반</td><td>새 402를 요청</td></tr>
 <tr><td>transaction expired</td><td>last_valid_round 경과</td><td>새로 서명</td></tr>
 <tr><td>settlement failed</td><td>네트워크 거부(서명·잔고)</td><td>지갑 확인 후 재시도</td></tr>
+<tr><td>payment already used (409)</td><td>그 트랜잭션은 이미 읽기나 크레딧에 쓰였다</td><td>결제 1건은 읽기 1회. 여러 번 읽을 거면 선예치</td></tr>
+<tr><td>credit exhausted or expired (402)</td><td>선예치 잔액이 소진됐거나 90일이 지났다</td><td>다시 충전하거나 건당 결제</td></tr>
 </table>
 
 <h2>6. MCP 표면</h2>

@@ -80,3 +80,14 @@ CREATE TABLE IF NOT EXISTS credits (
 );
 CREATE INDEX IF NOT EXISTS idx_credits_payer ON credits(payer);
 CREATE INDEX IF NOT EXISTS idx_credits_open ON credits(expires_at) WHERE balance_micro_algo > 0;
+
+-- One row per on-chain payment the edge has accepted. A payment id is a bearer token: without
+-- this table the same transfer could be replayed for another read, especially now that a
+-- re-submitted transaction is recognised instead of failing.
+CREATE TABLE IF NOT EXISTS payments (
+  txid        TEXT PRIMARY KEY,
+  resource    TEXT NOT NULL,
+  payer       TEXT,
+  amount      INTEGER,
+  created_at  INTEGER NOT NULL
+);

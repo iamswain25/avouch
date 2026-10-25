@@ -113,6 +113,8 @@ GET /api/credit/&lt;credit_id&gt;   X-CREDIT: &lt;credit_token&gt;    -> balance
 <tr><td>paymentId already used</td><td>single-use violation</td><td>request a fresh 402</td></tr>
 <tr><td>transaction expired</td><td>last_valid_round passed</td><td>sign again</td></tr>
 <tr><td>settlement failed</td><td>network rejected (signature, funds)</td><td>check the wallet, retry</td></tr>
+<tr><td>payment already used (409)</td><td>that transaction already bought a read or a credit</td><td>one payment buys one read; prepay for many</td></tr>
+<tr><td>credit exhausted or expired (402)</td><td>prepaid balance is spent or past 90 days</td><td>top up again, or pay per read</td></tr>
 </table>
 
 <h2>6. MCP surface</h2>

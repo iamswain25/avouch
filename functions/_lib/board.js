@@ -414,6 +414,9 @@ export async function readSlot(env, cfg, slotId, paymentHeader, creditHeader) {
       };
     } else {
       const receipt = await verifyPayment({ headerB64: paymentHeader, resource, secret: cfg.secret, payTo: cfg.payTo, algod: cfg.algod, network: cfg.network });
+      if (!(await claimPayment(env, receipt.transaction, resource, receipt.payer, receipt.amount))) {
+        return { status: 409, body: { error: "payment already used", transaction: receipt.transaction, hint: "one payment buys one read; prepay for many" } };
+      }
       access = { scheme: "exact", ...receipt };
     }
   } catch (err) {
@@ -454,6 +457,18 @@ export async function readSlot(env, cfg, slotId, paymentHeader, creditHeader) {
   };
 }
 
+
+
+// A payment id is single-use. algod refuses a duplicate submission, but a client retrying after
+// a slow confirmation must still be able to finish, so verification recovers "already in ledger"
+// - which means the edge needs its own replay guard.
+async function claimPayment(env, txid, resource, payer, amount) {
+  if (!env.DB) return true;
+  const res = await env.DB.prepare(
+    "INSERT INTO payments (txid, resource, payer, amount, created_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(txid) DO NOTHING",
+  ).bind(String(txid), String(resource), payer || "", Number(amount || 0), Math.floor(Date.now() / 1000)).run();
+  return Boolean(res.meta && res.meta.changes === 1);
+}
 
 // ------------------------------------------------------------------ credit
 
@@ -551,6 +566,9 @@ export async function creditRedeem(env, cfg, creditId, paymentHeader) {
     return { status: 402, body: { error: `deposit rejected: ${String(err.message || err)}` } };
   }
 
+  if (!(await claimPayment(env, receipt.transaction, `/api/credit/redeem/${creditId}`, receipt.payer, receipt.amount))) {
+    return { status: 409, body: { error: "payment already used", transaction: receipt.transaction } };
+  }
   const now = Math.floor(Date.now() / 1000);
   const upd = await env.DB.prepare(
     "UPDATE credits SET balance_micro_algo = deposited_micro_algo, deposit_txid = ?, payer = ?, updated_at = ? WHERE credit_id = ? AND deposit_txid IS NULL",
