@@ -244,7 +244,7 @@ Settlement cadence (a public rule)
 - Otherwise it settles every 24 hours, from a minimum of 5,000 uALGO.
 - No read is ever held longer than seven days.
 
-The read payment itself is still per-transaction on chain (1,000 price plus a 1,000 uALGO chain fee, paid by the reader); only the maintainer distribution is batched. Cutting the per-read cost further at high traffic needs the channel model in 4-6; at this stage a read costs 2,000 uALGO in total (about $0.0002).
+The read payment itself is still per-transaction on chain (1,000 price plus a 1,000 uALGO chain fee, paid by the reader); the prepaid voucher channel in 4-6 is not built in this pilot, which is why a read currently costs double. With a 50-read deposit it would fall to about 1,040 uALGO per read (4% overhead). Cutting the per-read cost further at high traffic needs the channel model in 4-6; at this stage a read costs 2,000 uALGO in total (about $0.0002).
 
 The fee is 2,000 uALGO per batch (pay plus appcall, two transactions) and comes out of the treasury share. It is not added to the read price and not deducted from the maintainer pool: 10% of a 20,000 uALGO batch, or 50 uALGO per read at 40 reads.
 
