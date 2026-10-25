@@ -104,6 +104,12 @@ h3 { font-size: 19px; margin: 0 0 8px; }
   .nav-links { gap: 6px 14px; font-size: 13px; }
 }
 
+/* phones: the section anchors are reachable by scrolling, keep the nav to the real links */
+@media (max-width: 640px) {
+  .nav-links a[href^="#"] { display: none; }
+  .nav-links { gap: 4px 12px; }
+}
+
 .card {
   background: var(--bg-soft);
   border: 1px solid var(--line);
