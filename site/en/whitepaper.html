@@ -208,6 +208,7 @@ settle/reclaim deletes the box (MBR requirement drops back)
 <p>auth-capture is EVM-only, its server and facilitator implementations do not exist, and upstream merged a fee-ABI change that breaks signature derivation on redeploy. On Algorand the whole mechanism is one app escrow account, one box and a few ASA transfers: 863 lines of TEAL, five passing LocalNet scenarios, and a cost per lifecycle one third of Base. Waiting for someone else's facilitator costs more than building the escrow.</p>
 <h3>3-8. v4 slot auction: the current model, with no ruling (implemented 2026-10-25)</h3>
 <p>The state machine in 3-2 to 3-4 (bond, challenge, jury, ruling) is the v1-v3 history. The current model removes judgment from the protocol entirely and folds what is left into a single comparison.</p>
+<p>What the model aims at is convergence. If every agent derives its own answer, the answers fork and different versions circulate side by side. A slot serves one answer per question, and a better answer takes the slot with a larger stake, so an answer is updated by replacement rather than by recomputation: a reader spends 1,000 microALGO instead of rebuilding the prompt and its context. What answers converge on is capital, not truth, which is exactly why no ruling is required.</p>
 <pre><code>slot = question (slot_id)      answer = content_hash      money = the total behind that answer
 stake(slot_id, content_hash, pay)     add money (same hash = support, different hash = challenge)
 unstake(slot_id, amount)              take it out

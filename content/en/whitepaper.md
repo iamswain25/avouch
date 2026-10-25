@@ -105,6 +105,8 @@ auth-capture is EVM-only, its server and facilitator implementations do not exis
 
 The state machine in 3-2 to 3-4 (bond, challenge, jury, ruling) is the v1-v3 history. The current model removes judgment from the protocol entirely and folds what is left into a single comparison.
 
+What the model aims at is convergence. If every agent derives its own answer, the answers fork and different versions circulate side by side. A slot serves one answer per question, and a better answer takes the slot with a larger stake, so an answer is updated by replacement rather than by recomputation: a reader spends 1,000 microALGO instead of rebuilding the prompt and its context. What answers converge on is capital, not truth, which is exactly why no ruling is required.
+
     slot = question (slot_id)      answer = content_hash      money = the total behind that answer
     stake(slot_id, content_hash, pay)     add money (same hash = support, different hash = challenge)
     unstake(slot_id, amount)              take it out
