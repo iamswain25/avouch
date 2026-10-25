@@ -209,7 +209,7 @@ CHALLENGED --release_stale (resolve 창 경과)--&gt; 양쪽 전액 환불
 <h3>3-5. 왜 EVM auth-capture가 아니라 알고란드 자체 구현인가</h3>
 <p>x402 auth-capture는 EVM 전용이고, 2026-08 감사 시점에 서버 미들웨어·퍼실리테이터 구현이 없다(스펙과 클라이언트만 존재, 마지막 커밋 2026-05-29). Python·Go·Java SDK에는 문자열조차 없었다. 업스트림이 수수료 ABI를 바꾸는 PR을 머지했고, 에스크로 주소가 nonce 해시에 들어가 재배포 시 서명 포맷이 전부 무효가 되는 구조라, 남의 인프라에 얹는 리스크가 크다.</p>
 <p>반면 알고란드에서 필요한 것은 앱 에스크로 계정 하나, 박스 하나, ASA 전송 몇 개다. 실측 결과 계약은 PuyaPy 863줄 TEAL로 컴파일되고, 로컬넷에서 5개 시나리오가 전부 통과한다. x402 퍼실리테이터가 없는 프리미티브를 기다리는 비용보다 직접 만드는 비용이 작다.</p>
-<h3>3-6. 보증금 통화 — ALGO가 계약을 단순하게 만든다 (구현·실측)</h3>
+<h3>3-6. 보증금 통화 — ALGO가 계약을 단순하게 만든다 (v1-v3 이력, 구현·실측)</h3>
 <p>보증금을 USDC(ASA)로 받으면 계약이 ASA 의존을 진다. 앱 계정의 ASA 옵트인, 네트워크별 ASA id 설정, 모든 호출의 <code>foreign_assets</code>, 내부 전송의 <code>asset_receiver</code>. 네이티브 ALGO로 받으면 네 가지가 전부 사라진다.</p>
 <p>구현: <code>src/post_bond_algo.py</code> (PostBondAlgo), 로컬넷 e2e 6개 시나리오 전부 통과.</p>
 <table>
@@ -264,6 +264,9 @@ CHALLENGED --release_stale (resolve 창 경과)--&gt; 양쪽 전액 환불
 <p>따라서 <code>min_bond</code>를 USD 목표로 페그한다. <code>min_bond_algos = ceil(target_usd / ALGO_USD × 1.25)</code>를 주 1회 갱신하고, 보증금은 글 작성 시점의 microALGO로 고정한다. 노출 구간은 창 길이(24시간)뿐이고, 그 구간의 ALGO 변동은 ±5% 수준이라 페그 주기 안에 흡수된다. G가 큰 게시판(스팸 이득이 큰 곳)일수록 여유가 줄어드므로, 그런 곳은 목표 USD를 올리거나 페그 주기를 짧게 가져간다.</p>
 <p>계약 파라미터는 그대로다 — <code>min_bond</code> 단위만 microUSDC에서 microALGO로 바뀐다. 그래서 전환 비용은 계약 재배포와 클라이언트의 그룹 구성 변경뿐이다.</p>
 <h3>3-7. 네이티브 ALGO로 x402를 직접 구현하면 (구현·실측 7/7)</h3>
+<blockquote>
+<p>v4에서는 읽기 결제도 ALGO로 받는다(1,000 uALGO, exact-algo). 이 절의 결론 일부 — "수수료는 USDC로 남긴다", "USDC 수수료 + ALGO 보증금 3트랜잭션" — 는 보증금만 ALGO였던 v1~v3 계약 기준이다. 상호운용 권고(accepts에 ASA 항목 병기)는 그대로 유효하다.</p>
+</blockquote>
 <p><code>@x402/avm</code>은 Exact 스킴에서 ASA 전송만 다룬다. 그래서 ALGO만 가진 에이전트는 표준 x402로 결제할 수 없다. 직접 구현했다: <code>server/x402_native/</code> (verifier + 데모 서버 + localnet e2e).</p>
 <p>HTTP 흐름은 x402와 같다.</p>
 <pre><code>GET /paid        -&gt; 402  accepts[{scheme:exact, asset:"ALGO", payTo, maxAmountRequired, extra.paymentId}]
