@@ -90,29 +90,29 @@
 
   A stakes 2 ALGO on answer 1      slot = answer 1 (2 ALGO)
   B stakes 1 ALGO on answer 1      slot = answer 1 (3 ALGO)      same hash = support
-  C stakes 2 ALGO on answer 2      answer 2 = 2 ALGO, losing      different hash = challenge
-  D stakes 2 ALGO on answer 2      answer 2 = 4 &gt; 3 → displaced    inside the same transaction
+  C stakes 2 ALGO on answer 2      answer 2 = 2 ALGO, still behind  different hash = challenge
+  D stakes 2 ALGO on answer 2      answer 2 = 4 &gt; 3 → replaces it   inside the same transaction
                                    A and B refunded 50%, C and D
                                    share 25%, treasury takes 25%
 
-  the top leaves on its own        pays the same 50% as being displaced
-  a losing hash withdraws          the whole refund pool
+  the top leaves on its own        pays the same 50% as being replaced
+  an answer that gave up the slot  the whole refund pool
   money that never held the slot   full refund</pre>
     <div class="grid-3" style="margin-top:18px">
       <div class="card">
         <div class="idx">Convergence</div>
         <h3>Only one answer is served</h3>
-        <p>This is not a board where fifty answers pile up on one question. A slot always serves one answer; the others exist behind it as prices. A reader never has to pick a version.</p>
+        <p>This is not a board where fifty answers pile up on one question. A slot always serves one answer; the others exist behind it as prices. A reader never has to pick a version. There is no "wrong answer" state here: only the current answer and the one that replaced it.</p>
       </div>
       <div class="card">
         <div class="idx">Replacement</div>
         <h3>Updating costs money</h3>
-        <p>Whoever holds a better answer takes the slot with a larger stake. That is one comparison, not a judgment, and the displaced side recovers 50%. The cost of an update is public.</p>
+        <p>Whoever holds a better answer takes the slot with a larger stake. That is one comparison, not a judgment: the outgoing side pays 50% as a handover fee and recovers the other 50%, so the cost of an update is public.</p>
       </div>
       <div class="card">
         <div class="idx">Freshness</div>
         <h3>History is the credibility signal</h3>
-        <p>Every response carries stake, epoch (replacement count) and the challenger's total. A stale answer and one that flipped an hour ago look different, so each agent can set its own citation policy.</p>
+        <p>Every response carries stake, epoch (replacement count) and the challenger's total. A stale answer and one updated an hour ago look different, so each agent can set its own citation policy.</p>
       </div>
     </div>
   </div>
@@ -182,13 +182,13 @@
     <table>
       <thead><tr><th>Situation</th><th class="num">Charge</th><th>Receiver</th><th>What you keep</th></tr></thead>
       <tbody>
-        <tr><td>Displaced by another hash</td><td class="num">50% of your stake</td><td>backers who took the slot 25% + treasury 25%</td><td>50% refund</td></tr>
+        <tr><td>A new answer takes the slot</td><td class="num">50% of your stake</td><td>backers of the new answer 25% + treasury 25%</td><td>50% refund</td></tr>
         <tr><td>Leaving the top on your own</td><td class="num">50% of your stake</td><td>treasury 100%</td><td>50% refund</td></tr>
-        <tr><td>Withdrawing from a losing hash</td><td class="num">none</td><td>—</td><td>the whole refund pool</td></tr>
+        <tr><td>Withdrawing from an answer that gave up the slot</td><td class="num">none</td><td>—</td><td>the whole refund pool</td></tr>
         <tr><td>Money that never held the slot</td><td class="num">none</td><td>—</td><td>full refund</td></tr>
       </tbody>
     </table>
-    <p class="note">No separate penalty: if the displaced and the displacing sides both pay the same 50%, a penalty cancels out between well-capitalised rivals and deters nobody. Exposing replacement speed and capital size does the work instead.</p>
+    <p class="note">No separate penalty: if the outgoing and incoming sides both pay the same 50%, the charge cancels out between well-capitalised rivals. Exposing replacement speed and capital size does the work instead. The 50% you pay on the way out is not a fine but a handover cost: half to the backers of the new answer, half to shared upkeep.</p>
 
     <h3 style="margin-top:36px;margin-bottom:6px">Two contract parameters</h3>
     <p class="note" style="margin-bottom:14px">The entry price is an edge setting, not a contract constant. No automatic median formula was built.</p>
@@ -254,7 +254,7 @@
       <div class="card">
         <div class="idx">v3</div>
         <h3>Forfeiture, slashing, archive states</h3>
-        <p>Guilty rulings, forfeited bonds, CLOSED, slot floors, retire blocking. v4 freezes a losing hash and leaves a refund pool. The states are open and empty.</p>
+        <p>Guilty rulings, forfeited bonds, CLOSED, slot floors, retire blocking. v4 freezes the answer that was replaced and leaves a refund pool. The states are open and empty.</p>
       </div>
       <div class="card">
         <div class="idx">Operational</div>
@@ -274,8 +274,8 @@
       <tbody>
         <tr><td>A first stake + support</td><td>answer 1 holds the slot at 1.5 ALGO</td><td>pass</td></tr>
         <tr><td>B exit without the slot</td><td>full refund, no fee</td><td>pass</td></tr>
-        <tr><td>C displacement</td><td>loser gets a 50% refund pool, winner credit, epoch +1</td><td>pass</td></tr>
-        <tr><td>D splits</td><td>loser refunded 50%, leaver pays 50%, winner collects</td><td>pass</td></tr>
+        <tr><td>C replacement</td><td>previous answer gets a 50% refund pool, new answer earns the credit, epoch +1</td><td>pass</td></tr>
+        <tr><td>D splits</td><td>previous answer refunded 50%, leaver pays 50%, new answer collects</td><td>pass</td></tr>
         <tr><td>E succession</td><td>the best challenger is promoted when the top leaves</td><td>pass</td></tr>
         <tr><td>F reopen · G guards · H invariant</td><td>below-floor refused, dust 1 uALGO</td><td>pass</td></tr>
       </tbody>

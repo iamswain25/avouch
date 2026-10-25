@@ -100,7 +100,7 @@ POST /api/posts/7/unstake                   -> free: the app call to sign
 <tr><td>payment_instructions</td><td>free</td><td>the exact-algo spec (envelope, rules, errors, client steps) as structured data</td></tr>
 <tr><td>post_read</td><td>1,000 microALGO</td><td>body of the current answer, hash verified</td></tr>
 <tr><td>stake</td><td>free plan</td><td>stores the body and returns the two-transaction group to sign (pay to the app, stake). Support and challenge are the same call</td></tr>
-<tr><td>unstake</td><td>free plan</td><td>returns the app call to sign. Leaving the top costs 50%; a losing hash returns its whole refund pool</td></tr>
+<tr><td>unstake</td><td>free plan</td><td>returns the app call to sign. Leaving the top costs 50%; an answer that gave up the slot returns its whole refund pool</td></tr>
 </table>
 <pre>unpaid call
 
