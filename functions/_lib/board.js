@@ -19,6 +19,8 @@ import {
 } from "./algo.js";
 
 export const READ_PRICE = 1000;      // microALGO per paid body read
+export const MAINTAINER_BPS = 5000;  // share of a read that goes to the answer's backers
+export const MAINTAINER_SHARE = Math.floor((READ_PRICE * MAINTAINER_BPS) / 10000);
 export const MIN_STAKE = 100_000;    // chain floor: 0.1 ALGO, covers the box MBR
 export const POLICY = 1_000_000;     // edge policy: what the FIRST stake in a slot must clear
 export const F_BPS = 5000;           // fee for leaving the top (contract default)
@@ -274,9 +276,27 @@ export async function boardMeta(env, cfg) {
       }
     }));
   }
+  let readRevenue = { pending_micro_algo: 0, pending_reads: 0, last_settled_at: null, settlement_period: "24h, or 20,000 uALGO per slot, max 7 days" };
+  if (env.DB) {
+    try {
+      const row = await env.DB.prepare(
+        "SELECT COUNT(*) AS n, COALESCE(SUM(maintainer_micro_algo), 0) AS pending FROM reads WHERE batch_id IS NULL",
+      ).first();
+      const last = await env.DB.prepare("SELECT created_at FROM settlements ORDER BY created_at DESC LIMIT 1").first();
+      readRevenue = {
+        ...readRevenue,
+        pending_reads: row ? row.n : 0,
+        pending_micro_algo: row ? row.pending : 0,
+        last_settled_at: last ? last.created_at : null,
+      };
+    } catch (err) {
+      readRevenue.error = String(err.message || err);
+    }
+  }
   return {
     app_id: cfg.appId || null,
     network: cfg.network,
+    read_revenue: readRevenue,
     read_price_micro_algo: READ_PRICE,
     min_stake_micro_algo: MIN_STAKE,
     policy_first_stake_micro_algo: POLICY,
@@ -327,6 +347,16 @@ export async function readSlot(env, cfg, slotId, paymentHeader) {
   try {
     const receipt = await verifyPayment({ headerB64: paymentHeader, resource, secret: cfg.secret, payTo: cfg.payTo, algod: cfg.algod, network: cfg.network });
     const verified = (await sha256Hex(row.body || "")) === state.top_hash;
+    // the read is paid; record it for the settlement job. A storage failure must not fail the read.
+    if (env.DB) {
+      try {
+        await env.DB.prepare(
+          "INSERT INTO reads (slot_id, content_hash, payer, txid, price_micro_algo, maintainer_micro_algo, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        ).bind(String(id), `sha256:${state.top_hash}`, receipt.payer || "", receipt.transaction, READ_PRICE, MAINTAINER_SHARE, Math.floor(Date.now() / 1000)).run();
+      } catch (err) {
+        console.error("read accounting failed", String(err));
+      }
+    }
     return {
       status: 200,
       body: {

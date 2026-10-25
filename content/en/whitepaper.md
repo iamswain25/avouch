@@ -118,7 +118,7 @@ Three rules. The answer holding a slot is the hash with the largest total; a tie
 
 The fee is charged once, for leaving the top: f = 50%. Being replaced and walking away cost the same, so escaping has no advantage and no blocking rule (floor, decay, blockline) is needed. Half of f goes to the backers of the side that took the slot, half to the treasury; a voluntary exit sends all of it to the treasury. Money that never held the slot and withdrawals from an answer that already gave it up are free.
 
-There is no state called "wrong" in this protocol. Answers are not classified as right or wrong; they are updated when a better one arrives. A slot updates its answer the way a model updates a checkpoint, and the previous answer is not deleted: it stays as a refund pool and as history. The 50% paid on the way out is not a fine but a handover cost: half to the backers who put the new answer in place, half to shared upkeep (the treasury). Reads that accumulate while an answer holds the slot belong to whoever maintains it (today they go to the treasury; the maintainer split is the next step).
+There is no state called "wrong" in this protocol. Answers are not classified as right or wrong; they are updated when a better one arrives. A slot updates its answer the way a model updates a checkpoint, and the previous answer is not deleted: it stays as a refund pool and as history. The 50% paid on the way out is not a fine but a handover cost: half to the backers who put the new answer in place, half to shared upkeep (the treasury). Reads that accumulate while an answer holds the slot belong to whoever maintains it: 500 of the 1,000 uALGO read price goes to that answer's backers, settled as described in 4-7.
 
 Deterrence is not a goal. The protocol does not rule an answer true or false; it publishes its price. Every answer carries stake, epoch and replacement history, and readers judge with those numbers. A stale answer that lasted twenty days is not a failure but the datum that its price was 10 ALGO for those twenty days. The contract therefore has two parameters: f (5000 bps) and a chain floor min_stake (0.1 ALGO, covering the 0.0754 ALGO box MBR). The entry policy (1 ALGO to open an empty slot) is an edge setting, not a contract constant.
 
@@ -231,6 +231,28 @@ Algorand has no binding for the scheme, so the same semantics run on a self-buil
 - no server-side overcharge is possible: the ceiling is the last signed cumulative amount and the deposit
 
 Settlement costs about 2,000 uALGO ($0.00021), so settle when cumulative reaches $0.005 (4% overhead) or at expiry, whichever comes first. Ten thousand concurrent channels hold 300–500 ALGO of refundable float. On EVM the same payload maps onto the standard scheme, so only the server changes.
+
+### 4-7. Read revenue to maintainers, settled in batches (implemented, measured)
+
+A read costs 1,000 uALGO, of which 50% (500 uALGO) goes to the backers of the answer that served it. The other half goes to the treasury for operations and settlement fees.
+
+A read is never settled on chain by itself: putting a 2,000 uALGO fee on a 1,000 uALGO read doubles the price. Instead the edge records every read in a `reads` table, and a settlement job groups them per slot and calls the contract's `reward(pay,uint64)` once. That raises the answer's accumulator, and each backer pulls a share with `claim(uint64)`. Principal is untouched.
+
+Settlement cadence (a public rule)
+
+- A slot's pending pool settles as soon as it reaches 20,000 uALGO (40 reads).
+- Otherwise it settles every 24 hours, from a minimum of 5,000 uALGO.
+- No read is ever held longer than seven days.
+
+The fee is 2,000 uALGO per batch (pay plus appcall, two transactions) and comes out of the treasury share. It is not added to the read price and not deducted from the maintainer pool: 10% of a 20,000 uALGO batch, or 50 uALGO per read at 40 reads.
+
+If the answer changed. When the answer served at read time is no longer the answer at settlement time (a replacement happened in between), that revenue goes to the treasury rather than to the wrong maintainers. It is recorded as `redirected:<timestamp>`.
+
+Dust guard. `reward` rejects an amount that cannot move the accumulator by one unit (a reward below stake/10^6), so the settler waits and batches instead of pushing dust.
+
+Trust assumption. The operator holds the read-revenue wallet and signs the settlements, so it can delay or skip them. The unsettled balance (`read_revenue.pending_micro_algo` in `/api/meta`) and every settlement transaction id are public, so anyone can audit. A trustless version would take each read straight into the app account and let the reader credit it in the contract (two transactions per read), which costs more than the read itself and was rejected.
+
+Measured on localnet (2026-10-25): three reads (1,500 uALGO) settled in transaction `GOFIRCWRUJJEYICIYPC5IOJXCB4Z3CB2R73I5C4OU5WL7MISJMNQ`, the answer's accumulator reached 1,500, and the backer's `claim` paid exactly 1,500 uALGO. Two reads on a slot whose answer had changed were redirected to the treasury.
 
 ## 5. Identity and reputation
 

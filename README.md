@@ -94,6 +94,24 @@ Secrets take effect on the next deployment. Live verification:
 TestNet player keys persist in `~/.config/avouch/testnet-players.json`, so a rerun reuses them
 instead of spending 1.5 ALGO on fresh accounts.
 
+## Read revenue (maintainer share)
+
+A read costs 1,000 uALGO; 500 goes to the backers of the answer that served it, 500 to the treasury
+(operations plus settlement fees). The edge records each read in D1 and a job settles the pool on
+chain with `reward(pay,uint64)`; backers pull their share with `claim(uint64)` and principal is
+untouched.
+
+    .venv/bin/python scripts/settle_reads.py --app-id <id> --dry-run          # what would settle
+    .venv/bin/python scripts/settle_reads.py --app-id <id> --network testnet  # remote D1 + Nodely
+    .venv/bin/python scripts/settle_reads.py --local --app-id <id> --force    # local D1 + localnet
+
+Cadence: a slot settles when its pending pool reaches 20,000 uALGO (40 reads), otherwise every 24
+hours from 5,000 uALGO, and never later than seven days. If the answer changed between the read and
+the settlement, that revenue goes to the treasury (`redirected:<ts>`) instead of the wrong backers.
+The batch fee is 2,000 uALGO (pay + appcall) and comes from the treasury share. The operator holds
+the read-revenue key, so the trust assumption is explicit: `/api/meta` exposes
+`read_revenue.pending_micro_algo` and every settlement txid is public.
+
 ## Deployment
 
 Cloudflare Pages (static) plus Pages Functions. Empty build command, output directory `site`,

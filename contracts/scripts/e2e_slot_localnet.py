@@ -119,6 +119,8 @@ def deploy(a, creator, treasury: "Acct") -> int:
     txn = transaction.ApplicationCreateTxn(
         creator.address, sp, transaction.OnComplete.NoOpOC, approval, clear,
         transaction.StateSchema(4, 1), transaction.StateSchema(0, 0), app_args=app_args,
+        extra_pages=1,   # reward/claim push the approval past one page
+
     )
     wait(a, a.send_transaction(txn.sign(creator.private_key)))
     return a.pending_transaction_info(txn.get_txid())["application-index"]
@@ -196,6 +198,47 @@ def stake_state(a, who, app_id, sid, addr):
 def escrow_total(a, who, app_id) -> int:
     return int(read_view(a, who, app_id, "escrow_total()uint64"))
 
+
+
+
+def call_method(a, who, app_id, sig, values, boxes=(), fee=2000):
+    method = abi.Method.from_signature(sig)
+    app_args = [method.get_selector()] + [method.args[i].type.encode(v) for i, v in enumerate(values)]
+    sp = a.suggested_params()
+    sp.flat_fee = True
+    sp.fee = fee
+    txn = transaction.ApplicationNoOpTxn(
+        who.address, sp, app_id, app_args=app_args, boxes=[(app_id, b) for b in boxes],
+    )
+    wait(a, a.send_transaction(txn.sign(who.private_key)))
+
+
+def group_reward(a, payer, app_id, sid, amount, accounts=()):
+    # the reward writes the answer box of whatever hash holds the slot, so a client reads the
+    # slot first and lists that box (the contract cannot guess it)
+    boxes = [slot_key(sid)]
+    try:
+        slot = slot_state(a, payer, app_id, sid)
+        if int(slot[IDX_TOP_TOTAL]) > 0:
+            boxes.append(answer_key(sid, bval(slot[IDX_TOP_HASH])))
+    except Exception:
+        pass
+    sp = a.suggested_params()
+    sp.flat_fee = True
+    sp.fee = FEE
+    pay = transaction.PaymentTxn(payer.address, sp, app_addr(app_id), amount)
+    method = abi.Method.from_signature("reward(pay,uint64)void")
+    sp2 = a.suggested_params()
+    sp2.flat_fee = True
+    sp2.fee = 2000
+    call = transaction.ApplicationNoOpTxn(
+        payer.address, sp2, app_id,
+        app_args=[method.get_selector(), method.args[1].type.encode(sid)],
+        boxes=[(app_id, b) for b in boxes],
+        accounts=list(accounts),
+    )
+    transaction.assign_group_id([pay, call])
+    wait(a, a.send_transactions([pay.sign(payer.private_key), call.sign(payer.private_key)]))
 
 def fails(fn) -> bool:
     try:
@@ -332,6 +375,37 @@ def main() -> int:
     residual = escrow_total(a, dispenser, app_id)
     ok_h = 0 <= residual < 10
     results.append(("H invariant: escrow is empty apart from division dust", ok_h, f"residual={residual} uALGO"))
+
+    # ---------------- I: read revenue - a batched reward accrues to the answer's backers
+    sid2 = 2
+    stake(a, alice, app_id, sid2, H1, ONE, boxes=[slot_key(sid2), answer_key(sid2, H1), stake_key(sid2, alice.address)])
+    stake(a, bob, app_id, sid2, H1, ONE, boxes=[slot_key(sid2), answer_key(sid2, H1), stake_key(sid2, bob.address)])
+    esc_before = escrow_total(a, dispenser, app_id)
+    group_reward(a, dispenser, app_id, sid2, 20_000)
+    ans2 = answer_state(a, dispenser, app_id, sid2, H1)
+    acc_expect = 20_000 * 1_000_000 // 2_000_000
+    ok_i = int(ans2[IDX_ACC]) == acc_expect and escrow_total(a, dispenser, app_id) == esc_before + 20_000
+    results.append(("I read revenue: a batched reward raises the answer accumulator",
+                    ok_i, f"acc={int(ans2[IDX_ACC])} escrow+{escrow_total(a, dispenser, app_id) - esc_before}"))
+
+    # ---------------- J: each backer claims a pro-rata share, and only once
+    before_a = bal(a, alice.address)
+    call_method(a, alice, app_id, "claim(uint64)void", [sid2], boxes=[slot_key(sid2), answer_key(sid2, H1), stake_key(sid2, alice.address)])
+    alice_got = bal(a, alice.address) - before_a + 2000
+    before_b = bal(a, bob.address)
+    call_method(a, bob, app_id, "claim(uint64)void", [sid2], boxes=[slot_key(sid2), answer_key(sid2, H1), stake_key(sid2, bob.address)])
+    bob_got = bal(a, bob.address) - before_b + 2000
+    twice = fails(lambda: call_method(a, alice, app_id, "claim(uint64)void", [sid2],
+                                      boxes=[slot_key(sid2), answer_key(sid2, H1), stake_key(sid2, alice.address)]))
+    ok_j = alice_got == 10_000 and bob_got == 10_000 and twice
+    results.append(("J claim: pro-rata read revenue, second claim refused", ok_j,
+                    f"alice={alice_got} bob={bob_got} twice_refused={twice}"))
+
+    # ---------------- K: dust-sized rewards and empty slots are refused
+    empty_slot = fails(lambda: group_reward(a, dispenser, app_id, 99, 20_000))
+    tiny = fails(lambda: group_reward(a, dispenser, app_id, sid2, 1))
+    results.append(("K guards: reward on an empty slot and a dust reward are refused",
+                    empty_slot and tiny, f"empty={empty_slot} dust={tiny}"))
 
     print()
     ok_all = True

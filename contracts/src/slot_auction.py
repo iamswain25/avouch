@@ -63,7 +63,9 @@ from algopy import (
     op,
 )
 
-ACC = 1_000_000        # reward-per-unit scale (a hash wins at most once, so acc <= f*s*ACC)
+ACC = 1_000_000        # reward-per-unit scale; keeps amount*acc inside uint64 while
+                       # resolving rewards down to microALGO for stakes of a few ALGO
+MAX_ACC = 4_294_967_296  # 2^32: a hard ceiling so amount*acc can never overflow
 BPS = 10_000
 
 
@@ -311,6 +313,63 @@ class SlotAuction(ARC4Contract):
         self._send(Txn.sender, refund + claim)
         if fee > UInt64(0):
             self._send(self.treasury.value.native, fee)
+
+    # ---------------------------------------------------------- read revenue
+
+    @arc4.abimethod
+    def reward(self, pay: gtxn.PaymentTransaction, slot_id: arc4.UInt64) -> None:
+        """Credit read revenue to the answer that currently holds the slot.
+
+        The edge batches paid reads and settles them here in one payment, so a 1,000 uALGO
+        read never pays a chain fee. The credit raises the answer's accumulator and backers
+        pull their share with `claim`; nobody is iterated over.
+        """
+        assert pay.sender == Txn.sender, "pay sender"
+        assert pay.receiver == Global.current_application_address, "pay receiver"
+        assert pay.rekey_to == Global.zero_address, "rekey"
+        assert pay.close_remainder_to == Global.zero_address, "close"
+        assert pay.amount > UInt64(0), "amount"
+        assert slot_id in self.slots, "no slot"
+
+        slot = self.slots[slot_id].copy()
+        assert slot.top_total.native > UInt64(0), "slot empty"
+        akey = op.itob(slot_id.native) + slot.top_hash.native
+        ans = self.answers[akey].copy()
+        assert not ans.settled.native, "answer settled"
+        assert ans.total.native > UInt64(0), "no total"
+
+        inc = pay.amount * UInt64(ACC) // ans.total.native
+        # dust protection: a reward too small to move the accumulator is rejected so the
+        # operator batches instead of silently losing it
+        assert inc > UInt64(0), "reward too small"
+        assert ans.acc.native + inc < UInt64(MAX_ACC), "acc cap"
+
+        ans.acc = arc4.UInt64(ans.acc.native + inc)
+        self.answers[akey] = ans.copy()
+        self.escrowed.value += pay.amount
+
+    @arc4.abimethod
+    def claim(self, slot_id: arc4.UInt64) -> None:
+        """Pay the sender the read revenue accrued on the answer they back.
+
+        Principal is untouched; this only settles the reward side. A later unstake still
+        returns the stake (with the top-exit fee if they hold the slot).
+        """
+        sid = slot_id.native
+        skey = op.itob(sid) + Txn.sender.bytes
+        assert skey in self.stakes, "no stake"
+        st = self.stakes[skey].copy()
+        akey = op.itob(sid) + st.hash.native
+        ans = self.answers[akey].copy()
+        acc_now = ans.acc_at_settle.native if ans.settled.native else ans.acc.native
+
+        owed = st.amount.native * acc_now // UInt64(ACC)
+        assert owed > st.debt.native, "nothing to claim"
+        amount = owed - st.debt.native
+        self.stakes[skey] = Stake(hash=st.hash.copy(), amount=st.amount, debt=arc4.UInt64(owed))
+        self.escrowed.value -= amount
+        self._check_solvency(amount)
+        self._send(Txn.sender, amount)
 
     # ------------------------------------------------------------------ view
 

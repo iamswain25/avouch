@@ -109,6 +109,7 @@ def main() -> int:
     create = transaction.ApplicationCreateTxn(
         deployer, sp, transaction.OnComplete.NoOpOC, approval, clear,
         transaction.StateSchema(4, 1), transaction.StateSchema(0, 0), app_args=app_args,
+        extra_pages=1,   # reward/claim push the approval past one page
     )
     txid = a.send_transaction(create.sign(sk))
     transaction.wait_for_confirmation(a, txid, 10)

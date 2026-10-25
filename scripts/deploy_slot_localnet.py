@@ -59,6 +59,7 @@ def main() -> int:
     txn = transaction.ApplicationCreateTxn(
         creator, sp, transaction.OnComplete.NoOpOC, approval, clear,
         transaction.StateSchema(4, 1), transaction.StateSchema(0, 0), app_args=app_args,
+        extra_pages=1,   # reward/claim push the approval past one page
     )
     transaction.wait_for_confirmation(a, a.send_transaction(txn.sign(creator_sk)), 10)
     app_id = a.pending_transaction_info(txn.get_txid())["application-index"]
