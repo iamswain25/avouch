@@ -94,6 +94,25 @@ Secrets take effect on the next deployment. Live verification:
 TestNet player keys persist in `~/.config/avouch/testnet-players.json`, so a rerun reuses them
 instead of spending 1.5 ALGO on fresh accounts.
 
+## Prepaid reads (credit)
+
+A read costs 1,000 microALGO and a per-read payment also costs a 1,000 microALGO chain fee, so
+one-off reads are twice the price. Prepay instead: one payment funds N reads (10-1000), the edge
+debits the balance off chain, and the chain fee is paid once.
+
+    POST /api/credit/topup {"reads":50}          # -> credit_id + the payment to send
+    POST /api/credit/redeem/{credit_id}          # PAYMENT-SIGNATURE -> credit_token
+    GET  /api/posts/{slot}   X-CREDIT: <token>   # 1,000 debited per read
+    GET  /api/credit/{credit_id}  X-CREDIT: <token>   # balance, reads left, expiry
+
+50 reads cost 50,000 microALGO plus one 1,000 fee: 1,020 per read instead of 2,000. Credits expire
+after 90 days; the deposit sits in the operator's pay-to account until spent or refunded, and the
+balance is public at `GET /api/credit/{credit_id}`. The on-chain version of this (a channel box with
+a signed voucher, where the operator cannot hold the funds) is the next step, not a claim of this
+release.
+
+    python scripts/credit_smoke.py --reads 10 --slot <slot>   # 9 checks against a local edge
+
 ## Read revenue (maintainer share)
 
 A read costs 1,000 uALGO; 500 goes to the backers of the answer that served it, 500 to the treasury

@@ -62,3 +62,21 @@ CREATE TABLE IF NOT EXISTS posts (
   window_seconds INTEGER NOT NULL,
   txid TEXT
 );
+
+-- Prepaid read credit. One deposit funds many reads; the edge debits it off chain and the
+-- maintainer share still settles in batches (see reads). Custodial: the operator holds the
+-- deposit in the pay-to account until it is refunded, which is stated in the whitepaper.
+CREATE TABLE IF NOT EXISTS credits (
+  credit_id           TEXT PRIMARY KEY,
+  payer               TEXT NOT NULL DEFAULT '',
+  deposited_micro_algo INTEGER NOT NULL,
+  balance_micro_algo  INTEGER NOT NULL DEFAULT 0,
+  deposit_txid        TEXT UNIQUE,
+  reads               INTEGER NOT NULL DEFAULT 0,
+  created_at          INTEGER NOT NULL,
+  updated_at          INTEGER NOT NULL,
+  expires_at          INTEGER NOT NULL,
+  refunded_txid       TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_credits_payer ON credits(payer);
+CREATE INDEX IF NOT EXISTS idx_credits_open ON credits(expires_at) WHERE balance_micro_algo > 0;

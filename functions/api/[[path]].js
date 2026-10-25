@@ -5,8 +5,11 @@
 //   POST /api/posts/:slot/stake     free plan: pay + appl group to put ALGO behind a hash
 //   POST /api/posts/:slot/unstake   free plan: appl call to take ALGO out
 //   GET  /api/meta                  free: app id, prices, floor, policy, contested share
+//   POST /api/credit/topup          free plan: one payment that funds N reads
+//   POST /api/credit/redeem/:id     paid: turn that payment into a credit token
+//   GET  /api/credit/:id            free: balance, reads left, expiry (needs the token)
 
-import { boardMeta, config, indexSlots, readSlot, stakePlan, unstakePlan } from "../_lib/board.js";
+import { boardMeta, config, creditInfo, creditRedeem, creditTopup, indexSlots, readSlot, stakePlan, unstakePlan } from "../_lib/board.js";
 
 function json(body, status = 200) {
   return new Response(JSON.stringify(body, null, 1), {
@@ -36,6 +39,7 @@ async function route(request, env, context) {
     : url.pathname.replace(/^\/api\/?/, "").split("/").filter(Boolean);
   const method = request.method.toUpperCase();
   const payment = request.headers.get("PAYMENT-SIGNATURE") || request.headers.get("X-PAYMENT");
+  const credit = request.headers.get("X-CREDIT") || request.headers.get("X-CREDIT-TOKEN");
 
   try {
     if (seg.length === 1 && seg[0] === "meta" && method === "GET") {
@@ -62,7 +66,22 @@ async function route(request, env, context) {
     }
 
     if (seg.length === 2 && seg[0] === "posts" && method === "GET") {
-      const out = await readSlot(env, cfg, seg[1], payment);
+      const out = await readSlot(env, cfg, seg[1], payment, credit);
+      return json(out.body, out.status);
+    }
+
+    // prepaid reads: one payment, many reads
+    if (seg.length === 2 && seg[0] === "credit" && seg[1] === "topup" && method === "POST") {
+      const input = await request.json().catch(() => ({}));
+      const out = await creditTopup(env, cfg, input);
+      return json(out.body, out.status);
+    }
+    if (seg.length === 3 && seg[0] === "credit" && seg[1] === "redeem" && method === "POST") {
+      const out = await creditRedeem(env, cfg, seg[2], payment);
+      return json(out.body, out.status);
+    }
+    if (seg.length === 2 && seg[0] === "credit" && method === "GET") {
+      const out = await creditInfo(env, cfg, seg[1], credit || url.searchParams.get("token"));
       return json(out.body, out.status);
     }
 

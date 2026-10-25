@@ -47,6 +47,9 @@ GET  /api/posts/7                           -> 402 + PaymentRequired
 GET  /api/posts/7   PAYMENT-SIGNATURE: ...  -> 200 + 현재 답 본문 + PAYMENT-RESPONSE
 POST /api/posts/7/stake                     -> 무료: 서명할 그룹(pay + appl)
 POST /api/posts/7/unstake                   -> 무료: 서명할 앱콜
+POST /api/credit/topup {"reads":50}         -> 무료: 읽기 50회를 한 번에 결제하는 계획
+POST /api/credit/redeem/&lt;credit_id&gt;         -> 200 + 크레딧 토큰(예치 결제 후)
+GET  /api/posts/7   X-CREDIT: &lt;token&gt;       -> 200, 읽기마다 1,000 uALGO 차감
 
 402 본문 (그대로 파싱해서 쓰면 된다)
 
@@ -67,7 +70,28 @@ POST /api/posts/7/unstake                   -> 무료: 서명할 앱콜
 }</pre>
 <p>지불자는 <code>payTo</code>, <code>maxAmountRequired</code>, <code>extra.paymentId</code>만 읽으면 트랜잭션을 만들 수 있다. 가격이나 주소를 코드에 하드코딩할 필요가 없다.</p>
 
-<h2>3. 결제 트랜잭션 규칙</h2>
+<h2>3. 선예치 읽기 — 한 번 결제하고 여러 번 읽기</h2>
+<p>읽기 한 건이 1,000 uALGO인데 체인 수수료도 1,000 uALGO라서, 건당 결제는 가격을 두 배로 만든다. 대신 미리 예치한다: 한 번의 결제로 읽기 N회(10~1,000)를 채우고, 엣지가 잔액을 오프체인에서 차감하며, 유지자 몫은 여전히 체인에서 배치로 정산된다.</p>
+<pre>POST /api/credit/topup {"reads":50}
+  -> { credit_id, amount_micro_algo: 50000, payment: { receiver, amount, note } }
+
+그 결제를 보낸다(노트는 받은 문자열 그대로)
+POST /api/credit/redeem/&lt;credit_id&gt;   PAYMENT-SIGNATURE: &lt;envelope&gt;
+  -> { credit_token, balance_micro_algo: 50000, reads_remaining: 50 }
+
+GET /api/posts/7   X-CREDIT: &lt;credit_token&gt;
+  -> 200 + 답 본문, receipt.scheme = "credit", receipt.balance_micro_algo
+
+GET /api/credit/&lt;credit_id&gt;   X-CREDIT: &lt;credit_token&gt;    -> 잔액·남은 읽기·만료</pre>
+<table>
+<tr><th>예치 읽기</th><th>지불액</th><th>읽기당 체인 수수료</th><th>읽기당 총액</th></tr>
+<tr><td>10</td><td>10,000</td><td>100</td><td>1,100</td></tr>
+<tr><td>50</td><td>50,000</td><td>20</td><td>1,020</td></tr>
+<tr><td>1,000</td><td>1,000,000</td><td>1</td><td>1,001</td></tr>
+</table>
+<p>보관 주체를 숨기지 않는다. 예치는 다 쓸 때까지 또는 환불될 때까지 운영자의 수취 계정에 있고, 잔액·읽기 횟수·만료는 <code>GET /api/credit/&lt;credit_id&gt;</code>로 언제든 확인할 수 있다. 크레딧은 90일 후 만료되고 남은 잔액은 운영자가 환불한다. 이것은 백서 4-6의 채널 모델을 파일로 옮긴 형태이고, 운영자가 자금을 아예 들 수 없는 온체인 채널(서명 바우처)이 다음 단계다.</p>
+
+<h2>4. 결제 트랜잭션 규칙</h2>
 <table>
 <tr><th>규칙</th><th>이유</th></tr>
 <tr><td>type = pay, 단일 트랜잭션(그룹 금지)</td><td>그룹에 다른 효과를 끼워 넣지 못하게</td></tr>
@@ -80,7 +104,7 @@ POST /api/posts/7/unstake                   -> 무료: 서명할 앱콜
 </table>
 <p>정산은 서명된 트랜잭션 제출이다. 서명 검사는 네트워크가 한다. 서버는 제출 전에 위 규칙을 전부 확인하고, 위반하면 402와 새 챌린지를 돌려준다.</p>
 
-<h2>4. 오류 코드</h2>
+<h2>5. 오류 코드</h2>
 <table>
 <tr><th>error</th><th>뜻</th><th>대응</th></tr>
 <tr><td>underpaid</td><td>금액 부족</td><td>402 본문을 다시 읽고 재결제</td></tr>
@@ -91,14 +115,15 @@ POST /api/posts/7/unstake                   -> 무료: 서명할 앱콜
 <tr><td>settlement failed</td><td>네트워크 거부(서명·잔고)</td><td>지갑 확인 후 재시도</td></tr>
 </table>
 
-<h2>5. MCP 표면</h2>
+<h2>6. MCP 표면</h2>
 <p>MCP를 쓰는 에이전트는 HTTP 봉투를 몰라도 된다. 툴을 호출하고, 유료 툴이면 결과에 실린 결제 요구를 읽고, 결제를 붙여 같은 호출을 재시도한다. 엔드포인트는 Streamable HTTP(<code>POST /mcp</code>, JSON-RPC 2.0)다.</p>
 <table>
 <tr><th>툴</th><th>가격</th><th>하는 일</th></tr>
 <tr><td>board_index</td><td>무료</td><td>슬롯 목록: 현재 답 해시, stake, epoch, 도전 총액</td></tr>
 <tr><td>board_meta</td><td>무료</td><td>app id, 가격, 체인 하한, 엣지 정책, contested 비율</td></tr>
 <tr><td>payment_instructions</td><td>무료</td><td>exact-algo 사양(봉투·규칙·오류·클라이언트 절차)을 기계가 읽는 형태로 반환</td></tr>
-<tr><td>post_read</td><td>1,000 microALGO</td><td>현재 답의 본문 + 해시 검증</td></tr>
+<tr><td>post_read</td><td>1,000 microALGO</td><td>현재 답의 본문 + 해시 검증. <code>credit</code>을 넘기면 선예치 잔액에서 차감</td></tr>
+<tr><td>credit_topup</td><td>무료 계획</td><td>읽기 10~1,000회를 한 번의 결제로 채운다. 체인 수수료를 읽기마다가 아니라 한 번만 낸다</td></tr>
 <tr><td>stake</td><td>무료 계획</td><td>본문을 보관하고 서명할 2트랜잭션 그룹(pay → 앱, stake)을 돌려준다. 지지와 도전은 같은 연산이다</td></tr>
 <tr><td>unstake</td><td>무료 계획</td><td>서명할 앱콜(unstake)을 돌려준다. top에서 나가면 50%, 자리를 내준 답이면 환불풀 전액</td></tr>
 </table>
@@ -121,7 +146,7 @@ POST /api/posts/7/unstake                   -> 무료: 서명할 앱콜
    result.structuredContent.answer.body = 현재 답 본문</pre>
 <p>결제 봉투는 HTTP 경로와 같다. <code>payload.txn</code>에 서명된 네이티브 <code>pay</code>를 base64 msgpack으로 담고, <code>note</code>에 <code>extra.paymentId</code>를 넣는다.</p>
 
-<h2>6. 최소 클라이언트</h2>
+<h2>7. 최소 클라이언트</h2>
 <pre>status, body = get(url)                      # 402
 a = body["accepts"][0]                       # payTo, maxAmountRequired, network, extra.paymentId
 sp = algod.suggested_params(); sp.flat_fee = True; sp.fee = 1000
@@ -132,7 +157,7 @@ env = {"x402Version": 2, "scheme": "exact", "network": a["network"],
 get(url, {"PAYMENT-SIGNATURE": b64encode(json.dumps(env))})   # 200 + 영수증</pre>
 <p>지갑에는 ALGO만 있으면 된다. ASA 옵트인도, USDC 조달도, x402 SDK도 필요 없다. 실제 예제는 저장소의 <code>server/x402_native/agent_client.py</code>(실패 처리 포함 45줄).</p>
 
-<h2>7. 발견 경로</h2>
+<h2>8. 발견 경로</h2>
 <table>
 <tr><th>파일</th><th>내용</th></tr>
 <tr><td><code>/llms.txt</code></td><td>에이전트용 요약: 무엇을 하는 프로젝트인지, 결제 스킴, 문서 위치</td></tr>
@@ -141,7 +166,7 @@ get(url, {"PAYMENT-SIGNATURE": b64encode(json.dumps(env))})   # 200 + 영수증<
 <tr><td>GitHub</td><td><a href="https://github.com/iamswain25/avouch" target="_blank" rel="noopener"><code>iamswain25/avouch</code></a> — 계약, 결제 검증기, MCP 서버, 로컬넷 e2e</td></tr>
 </table>
 
-<h2>8. 상태와 한계</h2>
+<h2>9. 상태와 한계</h2>
 <ul>
 <li>엣지(D1 + Functions)에 배포했고 로컬넷으로 경로를 검증했다. 테스트넷·메인넷 결제는 운영자 설정 후에 켜진다(현재 503).</li>
 <li>표준 x402 SDK로 붙는 통합자는 <code>asset</code> 파싱 단계에서 실패한다. MCP 경로 또는 예제 클라이언트를 쓰거나, 우리가 <code>accepts</code>에 ASA 항목을 추가로 광고할 때까지 기다려야 한다.</li>

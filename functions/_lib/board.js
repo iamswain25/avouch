@@ -14,6 +14,7 @@ import {
   bytesToB64,
   bytesToHex,
   decodeAddress,
+  makeChallenge,
   paymentRequired,
   verifyPayment,
 } from "./algo.js";
@@ -21,6 +22,12 @@ import {
 export const READ_PRICE = 1000;      // microALGO per paid body read
 export const MAINTAINER_BPS = 5000;  // share of a read that goes to the answer's backers
 export const MAINTAINER_SHARE = Math.floor((READ_PRICE * MAINTAINER_BPS) / 10000);
+// Prepaid credit: one deposit funds many reads. The deposit is a single payment, so the
+// chain fee is amortised instead of paid twice per read. Custodial by design at this stage:
+// the operator holds the balance in the pay-to account and settles or refunds it.
+export const CREDIT_MIN_READS = 10;
+export const CREDIT_MAX_READS = 1000;
+export const CREDIT_TTL_DAYS = 90;
 export const MIN_STAKE = 100_000;    // chain floor: 0.1 ALGO, covers the box MBR
 export const POLICY = 1_000_000;     // edge policy: what the FIRST stake in a slot must clear
 export const F_BPS = 5000;           // fee for leaving the top (contract default)
@@ -256,6 +263,15 @@ export async function indexSlots(env, cfg) {
     slots,
     count: slots.length,
     read_price_micro_algo: READ_PRICE,
+    credit: {
+      price_per_read_micro_algo: READ_PRICE,
+      min_reads: CREDIT_MIN_READS,
+      max_reads: CREDIT_MAX_READS,
+      ttl_days: CREDIT_TTL_DAYS,
+      maintainer_share_per_read_micro_algo: MAINTAINER_SHARE,
+      topup: "POST /api/credit/topup {reads}",
+      custody: "operator holds the deposit until it is spent or refunded",
+    },
     chain: chainOk ? "algod" : "not configured",
     note: "stake, epoch and the current answer always come from the chain; this index only stores bodies",
   };
@@ -311,7 +327,7 @@ export async function boardMeta(env, cfg) {
 
 // ----------------------------------------------------------------- paid read
 
-export async function readSlot(env, cfg, slotId, paymentHeader) {
+export async function readSlot(env, cfg, slotId, paymentHeader, creditHeader) {
   if (!cfg.configured) return { status: 503, body: NOT_CONFIGURED };
   const id = Number(slotId);
   if (!Number.isSafeInteger(id) || id < 0) return { status: 400, body: { error: `slot_id must be a uint64, got ${slotId}` } };
@@ -327,8 +343,18 @@ export async function readSlot(env, cfg, slotId, paymentHeader) {
   if (state.empty) return { status: 409, body: { error: `slot ${id} is empty`, slot_id: String(id), epoch: state.epoch } };
 
   const resource = `/api/posts/${id}`;
-  if (!paymentHeader) {
-    return { status: 402, body: await paymentRequired({ resource, amount: READ_PRICE, payTo: cfg.payTo, network: cfg.network, secret: cfg.secret }) };
+  if (!paymentHeader && !creditHeader) {
+    return {
+      status: 402,
+      body: {
+        ...(await paymentRequired({ resource, amount: READ_PRICE, payTo: cfg.payTo, network: cfg.network, secret: cfg.secret })),
+        cheaper: {
+          why: "a per-read payment pays a 1,000 uALGO chain fee on a 1,000 uALGO read",
+          option: "prepay: POST /api/credit/topup {reads: 50}, then send X-CREDIT instead of PAYMENT-SIGNATURE",
+          price_per_read_micro_algo: READ_PRICE,
+        },
+      },
+    };
   }
 
   const row = await answerRow(env, id, state.top_hash);
@@ -344,40 +370,241 @@ export async function readSlot(env, cfg, slotId, paymentHeader) {
     };
   }
 
+  // access is settled before the body is served, but only after we know the body exists,
+  // so a credit is never spent on a 404
+  let access;
   try {
-    const receipt = await verifyPayment({ headerB64: paymentHeader, resource, secret: cfg.secret, payTo: cfg.payTo, algod: cfg.algod, network: cfg.network });
-    const verified = (await sha256Hex(row.body || "")) === state.top_hash;
-    // the read is paid; record it for the settlement job. A storage failure must not fail the read.
-    if (env.DB) {
-      try {
-        await env.DB.prepare(
-          "INSERT INTO reads (slot_id, content_hash, payer, txid, price_micro_algo, maintainer_micro_algo, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        ).bind(String(id), `sha256:${state.top_hash}`, receipt.payer || "", receipt.transaction, READ_PRICE, MAINTAINER_SHARE, Math.floor(Date.now() / 1000)).run();
-      } catch (err) {
-        console.error("read accounting failed", String(err));
+    if (creditHeader) {
+      const creditId = await readCreditToken(cfg.secret, creditHeader);
+      const debit = await debitCredit(env, creditId, READ_PRICE);
+      if (!debit) {
+        const info = await env.DB.prepare("SELECT balance_micro_algo, expires_at FROM credits WHERE credit_id = ?").bind(creditId).first().catch(() => null);
+        return {
+          status: 402,
+          body: {
+            x402Version: 2,
+            error: "credit exhausted or expired",
+            resource,
+            credit: {
+              credit_id: creditId,
+              balance_micro_algo: Number(info?.balance_micro_algo || 0),
+              expires_at: info?.expires_at || null,
+              topup: "POST /api/credit/topup {reads: N}",
+            },
+            accepts: [{
+              scheme: "exact",
+              network: cfg.network,
+              asset: "ALGO",
+              maxAmountRequired: String(READ_PRICE),
+              resource,
+              payTo: cfg.payTo,
+              extra: (await paymentRequired({ resource, amount: READ_PRICE, payTo: cfg.payTo, network: cfg.network, secret: cfg.secret })).accepts[0].extra,
+            }],
+          },
+        };
       }
+      access = {
+        success: true,
+        scheme: "credit",
+        credit_id: creditId,
+        payer: debit.payer,
+        transaction: `credit:${creditId}`,
+        balance_micro_algo: debit.balance,
+        reads_remaining: Math.floor(debit.balance / READ_PRICE),
+      };
+    } else {
+      const receipt = await verifyPayment({ headerB64: paymentHeader, resource, secret: cfg.secret, payTo: cfg.payTo, algod: cfg.algod, network: cfg.network });
+      access = { scheme: "exact", ...receipt };
     }
-    return {
-      status: 200,
-      body: {
-        slot: {
-          slot_id: String(id),
-          epoch: state.epoch,
-          top_hash: `sha256:${state.top_hash}`,
-          top_stake_micro_algo: state.top_total,
-          second_stake_micro_algo: state.second_total,
-          contested: state.second_total > 0,
-        },
-        answer: { content_hash: row.content_hash, title: row.title, body: row.body, content_hash_verified: verified },
-        receipt,
-      },
-    };
   } catch (err) {
+    if (creditHeader) return { status: 403, body: { error: `credit rejected: ${String(err.message || err)}` } };
     return {
       status: 402,
       body: await paymentRequired({ resource, amount: READ_PRICE, payTo: cfg.payTo, network: cfg.network, secret: cfg.secret, error: String(err.message || err) }),
     };
   }
+
+  const verified = (await sha256Hex(row.body || "")) === state.top_hash;
+  // the read is paid (or debited); record it for the settlement job. A storage failure must
+  // not fail the read.
+  if (env.DB) {
+    try {
+      await env.DB.prepare(
+        "INSERT INTO reads (slot_id, content_hash, payer, txid, price_micro_algo, maintainer_micro_algo, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      ).bind(String(id), `sha256:${state.top_hash}`, access.payer || "", access.transaction, READ_PRICE, MAINTAINER_SHARE, Math.floor(Date.now() / 1000)).run();
+    } catch (err) {
+      console.error("read accounting failed", String(err));
+    }
+  }
+
+  return {
+    status: 200,
+    body: {
+      slot: {
+        slot_id: String(id),
+        epoch: state.epoch,
+        top_hash: `sha256:${state.top_hash}`,
+        top_stake_micro_algo: state.top_total,
+        second_stake_micro_algo: state.second_total,
+        contested: state.second_total > 0,
+      },
+      answer: { content_hash: row.content_hash, title: row.title, body: row.body, content_hash_verified: verified },
+      receipt: access,
+    },
+  };
+}
+
+
+// ------------------------------------------------------------------ credit
+
+async function creditMacKey(secret) {
+  return crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+}
+
+async function creditSignature(secret, creditId) {
+  const key = await creditMacKey(secret);
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`credit:${creditId}`));
+  return bytesToHex(new Uint8Array(sig));
+}
+
+export async function creditToken(secret, creditId) {
+  return `${creditId}.${(await creditSignature(secret, creditId)).slice(0, 32)}`;
+}
+
+export async function readCreditToken(secret, token) {
+  const [creditId, sig] = String(token || "").split(".");
+  if (!creditId || !sig) throw new Error("malformed credit token");
+  const expected = (await creditSignature(secret, creditId)).slice(0, 32);
+  if (expected.length !== sig.length) throw new Error("bad credit token");
+  let diff = 0;
+  for (let i = 0; i < sig.length; i++) diff |= expected.charCodeAt(i) ^ sig.charCodeAt(i);
+  if (diff !== 0) throw new Error("bad credit token");
+  return creditId;
+}
+
+export function creditPrice(reads) {
+  return Number(reads) * READ_PRICE;
+}
+
+export async function creditTopup(env, cfg, input = {}) {
+  if (!cfg.configured) return { status: 503, body: NOT_CONFIGURED };
+  if (!env.DB) return { status: 503, body: { error: "credits not configured", detail: "the D1 binding is missing" } };
+  const reads = Number(input.reads ?? 50);
+  if (!Number.isInteger(reads) || reads < CREDIT_MIN_READS || reads > CREDIT_MAX_READS) {
+    return badRequest(`reads must be an integer between ${CREDIT_MIN_READS} and ${CREDIT_MAX_READS}`, {
+      price_per_read_micro_algo: READ_PRICE,
+      examples: { min: creditPrice(CREDIT_MIN_READS), max: creditPrice(CREDIT_MAX_READS) },
+    });
+  }
+  const amount = creditPrice(reads);
+  const creditId = crypto.randomUUID().replace(/-/g, "").slice(0, 24);
+  const now = Math.floor(Date.now() / 1000);
+  const expiresAt = now + CREDIT_TTL_DAYS * 86_400;
+  await env.DB.prepare(
+    "INSERT INTO credits (credit_id, deposited_micro_algo, balance_micro_algo, created_at, updated_at, expires_at) VALUES (?, ?, 0, ?, ?, ?)",
+  ).bind(creditId, amount, now, now, expiresAt).run();
+  // the note is a challenge bound to this credit, so a payment cannot be redeemed against
+  // a different credit id
+  const { paymentId } = await makeChallenge(cfg.secret, { resource: `/api/credit/redeem/${creditId}`, amount, ttlSeconds: 900 });
+  return {
+    status: 201,
+    body: {
+      credit_id: creditId,
+      reads,
+      amount_micro_algo: amount,
+      price_per_read_micro_algo: READ_PRICE,
+      fee_per_read_micro_algo: Math.ceil(1000 / reads),
+      expires_at: expiresAt,
+      payment: {
+        scheme: "exact-algo",
+        network: cfg.network,
+        receiver: cfg.payTo,
+        amount_micro_algo: amount,
+        note: paymentId,
+        note_ascii_only: true,
+      },
+      next: `send that payment, then POST /api/credit/redeem/${creditId} with PAYMENT-SIGNATURE; the response carries the credit token`,
+      custody: "the deposit sits in the operator's pay-to account until it is spent or refunded",
+    },
+  };
+}
+
+export async function creditRedeem(env, cfg, creditId, paymentHeader) {
+  if (!cfg.configured) return { status: 503, body: NOT_CONFIGURED };
+  if (!env.DB) return { status: 503, body: { error: "credits not configured", detail: "the D1 binding is missing" } };
+  if (!paymentHeader) return { status: 400, body: { error: "PAYMENT-SIGNATURE header missing" } };
+  const row = await env.DB.prepare("SELECT credit_id, deposited_micro_algo, deposit_txid, expires_at FROM credits WHERE credit_id = ?").bind(String(creditId)).first();
+  if (!row) return { status: 404, body: { error: `unknown credit ${creditId}`, hint: "POST /api/credit/topup first" } };
+  if (row.deposit_txid) return { status: 409, body: { error: "credit already redeemed", deposit_txid: row.deposit_txid } };
+
+  let receipt;
+  try {
+    receipt = await verifyPayment({
+      headerB64: paymentHeader,
+      resource: `/api/credit/redeem/${creditId}`,
+      secret: cfg.secret,
+      payTo: cfg.payTo,
+      algod: cfg.algod,
+      network: cfg.network,
+    });
+  } catch (err) {
+    return { status: 402, body: { error: `deposit rejected: ${String(err.message || err)}` } };
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const upd = await env.DB.prepare(
+    "UPDATE credits SET balance_micro_algo = deposited_micro_algo, deposit_txid = ?, payer = ?, updated_at = ? WHERE credit_id = ? AND deposit_txid IS NULL",
+  ).bind(receipt.transaction, receipt.payer || "", now, String(creditId)).run();
+  if (!upd.meta || upd.meta.changes !== 1) return { status: 409, body: { error: "credit already redeemed" } };
+
+  const balance = Number(row.deposited_micro_algo);
+  return {
+    status: 200,
+    body: {
+      credit_id: String(creditId),
+      credit_token: await creditToken(cfg.secret, creditId),
+      balance_micro_algo: balance,
+      reads_remaining: Math.floor(balance / READ_PRICE),
+      price_per_read_micro_algo: READ_PRICE,
+      expires_at: Number(row.expires_at),
+      deposit: receipt,
+      usage: "send X-CREDIT: <credit_token> instead of PAYMENT-SIGNATURE on GET /api/posts/:slot",
+    },
+  };
+}
+
+export async function creditInfo(env, cfg, creditId, token) {
+  if (!env.DB) return { status: 503, body: { error: "credits not configured" } };
+  try {
+    const id = await readCreditToken(cfg.secret, token || creditId);
+    if (id !== String(creditId)) throw new Error("credit token does not match the id");
+  } catch (err) {
+    return { status: 403, body: { error: String(err.message || err) } };
+  }
+  const row = await env.DB.prepare(
+    "SELECT credit_id, payer, deposited_micro_algo, balance_micro_algo, reads, created_at, updated_at, expires_at, refunded_txid FROM credits WHERE credit_id = ?",
+  ).bind(String(creditId)).first();
+  if (!row) return { status: 404, body: { error: `unknown credit ${creditId}` } };
+  const now = Math.floor(Date.now() / 1000);
+  return {
+    status: 200,
+    body: {
+      ...row,
+      reads_remaining: Math.floor(Number(row.balance_micro_algo) / READ_PRICE),
+      expired: Number(row.expires_at) <= now,
+      price_per_read_micro_algo: READ_PRICE,
+    },
+  };
+}
+
+async function debitCredit(env, creditId, price) {
+  const now = Math.floor(Date.now() / 1000);
+  const res = await env.DB.prepare(
+    "UPDATE credits SET balance_micro_algo = balance_micro_algo - ?, reads = reads + 1, updated_at = ? WHERE credit_id = ? AND balance_micro_algo >= ? AND expires_at > ?",
+  ).bind(price, now, creditId, price, now).run();
+  if (!res.meta || res.meta.changes !== 1) return null;
+  const row = await env.DB.prepare("SELECT payer, balance_micro_algo FROM credits WHERE credit_id = ?").bind(creditId).first();
+  return { payer: row?.payer || "", balance: Number(row?.balance_micro_algo || 0) };
 }
 
 // ---------------------------------------------------------------- write plans

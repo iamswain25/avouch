@@ -232,6 +232,8 @@ Algorand has no binding for the scheme, so the same semantics run on a self-buil
 
 Settlement costs about 2,000 uALGO ($0.00021), so settle when cumulative reaches $0.005 (4% overhead) or at expiry, whichever comes first. Ten thousand concurrent channels hold 300–500 ALGO of refundable float. On EVM the same payload maps onto the standard scheme, so only the server changes.
 
+Implementation status (2026-10-25). The channel contract above does not exist on chain yet. The same semantics were built at the edge first, in files: the deposit is a single `pay` whose note is a challenge bound to the credit id, the credit is an HMAC token, the debit is a conditional UPDATE in D1 (balance >= price, not expired), and balance, read count and expiry are publicly readable. The limit is explicit: the deposit sits in the operator's pay-to account and the operator signs refunds, so this whitepaper says who holds the money. Moving to the on-chain channel (a channel box plus an ed25519 voucher) removes that trust assumption.
+
 ### 4-7. Read revenue to maintainers, settled in batches (implemented, measured)
 
 A read costs 1,000 uALGO, of which 50% (500 uALGO) goes to the backers of the answer that served it. The other half goes to the treasury for operations and settlement fees.
@@ -244,7 +246,7 @@ Settlement cadence (a public rule)
 - Otherwise it settles every 24 hours, from a minimum of 5,000 uALGO.
 - No read is ever held longer than seven days.
 
-The read payment itself is still per-transaction on chain (1,000 price plus a 1,000 uALGO chain fee, paid by the reader); the prepaid voucher channel in 4-6 is not built in this pilot, which is why a read currently costs double. With a 50-read deposit it would fall to about 1,040 uALGO per read (4% overhead). Cutting the per-read cost further at high traffic needs the channel model in 4-6; at this stage a read costs 2,000 uALGO in total (about $0.0002).
+Reads are paid from a prepaid credit. One payment funds N reads (10 to 1,000) via `POST /api/credit/topup`, redeeming the deposit returns a credit token (`POST /api/credit/redeem/:id`), and later reads are debited off chain at 1,000 uALGO each with an `X-CREDIT` header. At 50 prepaid reads the total is 1,020 uALGO per read (1,000 plus a 20 fee), half of the one-off price (1,000 plus a 1,000 fee, about $0.0002). Credits expire after 90 days, unspent balance is refunded by the operator, and balance, read count and expiry are public at `GET /api/credit/:id`. The on-chain channel in 4-6 (signed voucher, operator cannot hold the funds) is not built; the credit is the file-based form of the same semantics.
 
 The fee is 2,000 uALGO per batch (pay plus appcall, two transactions) and comes out of the treasury share. It is not added to the read price and not deducted from the maintainer pool: 10% of a 20,000 uALGO batch, or 50 uALGO per read at 40 reads.
 

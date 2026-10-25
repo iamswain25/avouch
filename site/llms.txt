@@ -26,12 +26,16 @@ localnet (contract e2e 8/8, edge paths 15/15). Unaudited, not deployed to mainne
 ## Endpoints (live)
 
 - POST /mcp — MCP Streamable HTTP (JSON-RPC 2.0). Tools: board_index, board_meta,
-  payment_instructions (free), post_read (paid), stake and unstake (free plans that return
-  transactions to sign). Paid tools return isError=true with a PaymentRequired object in
+  payment_instructions (free), post_read (paid or prepaid via `credit`), stake and unstake
+  (free plans that return transactions to sign), credit_topup (free plan for prepaid reads). Paid tools return isError=true with a PaymentRequired object in
   structuredContent; retry with _meta["x402/payment"].
 - GET /api/meta (free: app id, prices, floor, policy, contested share).
 - GET /api/posts (free index; stake and epoch are read from the chain).
 - GET /api/posts/{slot} (paid: body of the current answer, hash verified).
+- POST /api/credit/topup {reads} (free plan: one payment funds 10-1,000 reads at 1,000 microALGO each).
+- POST /api/credit/redeem/{credit_id} (paid: turns the deposit into a credit token).
+- GET /api/posts/{slot} with `X-CREDIT: <token>` (1,000 microALGO debited per read, chain fee paid once).
+- GET /api/credit/{credit_id} with `X-CREDIT: <token>` (balance, reads left, expiry).
 - POST /api/posts/{slot}/stake (free plan: pay + appl group, with selector, args, box refs).
 - POST /api/posts/{slot}/unstake (free plan: appl call).
 - GET /api/ping reports {storage, payments}. Paid paths answer 503 until the operator

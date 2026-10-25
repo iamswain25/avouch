@@ -6,7 +6,7 @@
 // only post_read costs money at the edge. There is no post_create, no challenge, no bond
 // status and no ruling.
 
-import { boardMeta, config, indexSlots, paymentInstructions, readSlot, stakePlan, unstakePlan } from "./_lib/board.js";
+import { boardMeta, config, creditTopup, indexSlots, paymentInstructions, readSlot, stakePlan, unstakePlan } from "./_lib/board.js";
 
 const PROTOCOL_VERSION = "2025-06-18";
 const SERVER_INFO = { name: "avouch-board", version: "0.3.0" };
@@ -24,8 +24,25 @@ const TOOLS = [
   },
   {
     name: "post_read",
-    description: "Read the body of the current answer in a slot. Paid (native ALGO, scheme exact-algo): the first call returns isError=true with a PaymentRequired object; pay and retry with _meta['x402/payment'].",
-    inputSchema: { type: "object", properties: { slot_id: { type: "string" } }, required: ["slot_id"], additionalProperties: false },
+    description: "Read the body of the current answer in a slot. Paid: pass credit (from credit_topup) for prepaid reads, or retry with _meta['x402/payment'] for a one-off exact-algo payment.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        slot_id: { type: "string" },
+        credit: { type: "string", description: "credit token from credit_topup plus credit_redeem; debits 1,000 uALGO per read" },
+      },
+      required: ["slot_id"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "credit_topup",
+    description: "Free plan: one payment funds N reads (10-1000) at 1,000 uALGO each, so the chain fee is paid once instead of twice per read. Returns the payment to send and the redeem call that yields a credit token.",
+    inputSchema: {
+      type: "object",
+      properties: { reads: { type: "integer", minimum: 10, maximum: 1000, description: "how many reads to prepay (default 50)" } },
+      additionalProperties: false,
+    },
   },
   {
     name: "stake",
@@ -140,10 +157,16 @@ export async function onRequestPost({ request, env }) {
       }
 
       case "post_read": {
-        const out = await readSlot(env, cfg, String(args.slot_id || ""), payment);
+        const out = await readSlot(env, cfg, String(args.slot_id || ""), payment, args.credit);
         if (out.status === 402) return rpc(id, failed("payment required", out.body));
         if (out.status !== 200) return rpc(id, failed(out.body.error || "read failed", out.body));
         return rpc(id, ok(out.body, `settled ${out.body.receipt?.transaction || ""}`));
+      }
+
+      case "credit_topup": {
+        const out = await creditTopup(env, cfg, { reads: args.reads ?? 50 });
+        if (out.status !== 201) return rpc(id, failed(out.body.error || "topup failed", out.body));
+        return rpc(id, ok(out.body, `send ${out.body.amount_micro_algo} uALGO, then redeem credit ${out.body.credit_id}`));
       }
 
       case "stake": {
