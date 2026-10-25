@@ -177,7 +177,15 @@ export class Algod {
       body: bytes,
     });
     const text = await r.text();
-    if (!r.ok) throw new Error(`settlement failed: ${text.slice(0, 200)}`);
+    if (!r.ok) {
+      // a payment that already landed is not a failure: a client retrying after a slow
+      // confirmation must still be able to redeem it, so recover the txid and wait instead
+      if (/already in ledger|already in pool|already committed/i.test(text)) {
+        const txid = (text.match(/[A-Z2-7]{52}/) || [])[0];
+        if (txid) return txid;
+      }
+      throw new Error(`settlement failed: ${text.slice(0, 200)}`);
+    }
     // algod returns either a bare JSON string or {"txId": "..."} depending on version
     try {
       const parsed = JSON.parse(text);
@@ -197,7 +205,9 @@ export class Algod {
     return b64ToBytes(j.value);
   }
 
-  async waitFor(txid, rounds = 12) {
+  async waitFor(txid, rounds = 40) {
+    // TestNet blocks are ~2.8s and Nodely adds latency, so a 4s budget timeouts while the
+    // payment is still landing. Confirmation is what the credit needs, so wait up to ~20s.
     for (let i = 0; i < rounds; i++) {
       const r = await fetch(`${this.url}/v2/transactions/pending/${txid}`, { headers: this.headers() });
       if (r.ok) {
@@ -205,7 +215,7 @@ export class Algod {
         if (info["confirmed-round"]) return info;
         if (info["pool-error"]) throw new Error(`settlement failed: ${info["pool-error"]}`);
       }
-      await new Promise((res) => setTimeout(res, 350));
+      await new Promise((res) => setTimeout(res, 500));
     }
     throw new Error("settlement failed: not confirmed in time");
   }
