@@ -27,7 +27,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-from algosdk import account, encoding, transaction
+from algosdk import account, encoding, mnemonic, transaction
 from algosdk.kmd import KMDClient
 from algosdk.v2client import algod
 
@@ -48,7 +48,16 @@ def enc_txn(signed) -> str:
     return base64.b64encode(v.encode("latin-1")).decode()
 
 
-def connect():
+def connect(network: str = "localnet"):
+    """localnet: read the dispenser key from KMD. testnet: read a funded mnemonic from a key file."""
+    if network == "testnet":
+        from algosdk import mnemonic
+        import json as _json
+        from pathlib import Path as _Path
+        keyfile = _Path.home() / ".config" / "avouch" / "testnet.json"
+        m = _json.loads(keyfile.read_text())["mnemonic"]
+        sk = mnemonic.to_private_key(m)
+        return algod.AlgodClient("", "https://testnet-api.algonode.cloud"), sk, account.address_from_private_key(sk)
     a = algod.AlgodClient(TOKEN, ALGOD_URL)
     k = KMDClient(TOKEN, KMD_URL)
     w = [x for x in k.list_wallets() if x["name"] == "unencrypted-default-wallet"][0]
@@ -60,7 +69,8 @@ def connect():
 def http(method, url, body=None, headers=None):
     data = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(url, data=data, method=method,
-                                 headers={"Content-Type": "application/json", **(headers or {})})
+                                 headers={"Content-Type": "application/json",
+                                          "User-Agent": "avouch-e2e/1.0", **(headers or {})})
     try:
         with urllib.request.urlopen(req, timeout=40) as r:
             raw = r.read().decode()
@@ -154,17 +164,66 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--base", default="http://127.0.0.1:8789")
     ap.add_argument("--app-id", type=int, default=0)
+    ap.add_argument("--network", default="localnet", choices=["localnet", "testnet"])
     args = ap.parse_args()
     base = args.base.rstrip("/")
     app_id = args.app_id
 
-    a, dispenser_sk, dispenser = connect()
-    payer_sk, payer = account.generate_account()
-    rival_sk, rival = account.generate_account()
-    for sk, addr in ((payer_sk, payer), (rival_sk, rival)):
-        sp = a.suggested_params()
-        fund = transaction.PaymentTxn(dispenser, sp, addr, 20_000_000)
-        transaction.wait_for_confirmation(a, a.send_transaction(fund.sign(dispenser_sk)), 10)
+    a, dispenser_sk, dispenser = connect(args.network)
+    # testnet ALGO is scarce (10 ALGO/day from the dispenser), so the two players persist
+    # across runs in ~/.config/avouch/testnet-players.json and are only topped up when short
+    players_file = Path.home() / ".config" / "avouch" / "testnet-players.json"
+    if args.network == "testnet" and players_file.exists():
+        pj = json.loads(players_file.read_text())
+        payer_sk = mnemonic.to_private_key(pj["payer"])
+        rival_sk = mnemonic.to_private_key(pj["rival"])
+        payer = account.address_from_private_key(payer_sk)
+        rival = account.address_from_private_key(rival_sk)
+    else:
+        payer_sk, payer = account.generate_account()
+        rival_sk, rival = account.generate_account()
+        if args.network == "testnet":
+            players_file.parent.mkdir(parents=True, exist_ok=True)
+            players_file.write_text(json.dumps({
+                "payer": mnemonic.from_private_key(payer_sk),
+                "rival": mnemonic.from_private_key(rival_sk),
+            }, indent=1))
+            players_file.chmod(0o600)
+
+    if args.network == "testnet":
+        # the daily dispenser limit is 10 ALGO, so keep chain amounts at the policy floor and
+        # move only what each player is short of (stake + fees + the 0.1 ALGO min balance)
+        stake_a, stake_b = 1_000_000, 1_200_000
+        tr = json.loads((Path.home() / ".config" / "avouch" / "testnet-app.json").read_text())
+        tr_sk = mnemonic.to_private_key(tr["treasury_mnemonic"])
+
+        def missing(addr, need):
+            try:
+                return max(0, need - a.account_info(addr)["amount"])
+            except Exception:
+                return need
+
+        payer_need = missing(payer, 1_150_000)
+        rival_need = missing(rival, 1_350_000)
+        if payer_need:
+            sp = a.suggested_params()
+            sp.flat_fee = True
+            sp.fee = 1000
+            fund = transaction.PaymentTxn(dispenser, sp, payer, payer_need)
+            transaction.wait_for_confirmation(a, a.send_transaction(fund.sign(dispenser_sk)), 10)
+        if rival_need:
+            sp = a.suggested_params()
+            sp.flat_fee = True
+            sp.fee = 1000
+            fund = transaction.PaymentTxn(account.address_from_private_key(tr_sk), sp, rival, rival_need)
+            transaction.wait_for_confirmation(a, a.send_transaction(fund.sign(tr_sk)), 10)
+        print(f"players funded from deployer/treasury: payer +{payer_need}, rival +{rival_need} uALGO")
+    else:
+        stake_a, stake_b = 2_000_000, 3_000_000
+        for _sk, addr in ((payer_sk, payer), (rival_sk, rival)):
+            sp = a.suggested_params()
+            fund = transaction.PaymentTxn(dispenser, sp, addr, 20_000_000)
+            transaction.wait_for_confirmation(a, a.send_transaction(fund.sign(dispenser_sk)), 10)
 
     results = []
     stamp = str(int(time.time()))
@@ -212,7 +271,9 @@ def main() -> int:
     # 7 stake plan shape
     st, _, plan_a = http("POST", f"{base}/api/posts/{slot}/stake",
                          {"sender": payer, "content_hash": "sha256:" + hash_a, "body": body_a, "title": "A",
-                          "amount_micro_algo": 2_000_000, "question": "which answer holds this slot"})
+                          "amount_micro_algo": stake_a, "question": "which answer holds this slot"})
+    if "atomic_group" not in plan_a:
+        print("   stake plan response:", json.dumps(plan_a)[:400])
     legs = plan_a.get("atomic_group") or []
     app_leg = legs[1] if len(legs) == 2 else {}
     boxes = app_leg.get("foreign_boxes_b64") or []
@@ -237,7 +298,7 @@ def main() -> int:
         st, _, idx = http("GET", f"{base}/api/posts")
         row = slot_row(idx, slot)
         results.append(("10 on-chain stake: index reports chain state",
-                        row.get("top_hash") == "sha256:" + hash_a and row.get("top_stake_micro_algo") == 2_000_000 and row.get("epoch") == 1,
+                        row.get("top_hash") == "sha256:" + hash_a and row.get("top_stake_micro_algo") == stake_a and row.get("epoch") == 1,
                         f"txid={txid[:10]} top={str(row.get('top_hash'))[:16]} stake={row.get('top_stake_micro_algo')} epoch={row.get('epoch')}"))
 
         # 11 paid read of the current answer
@@ -268,7 +329,7 @@ def main() -> int:
 
         # 13 bigger rival stake displaces: new top, epoch 2, contested, incumbent box listed
         st, _, plan_b = http("POST", f"{base}/api/posts/{slot}/stake",
-                             {"sender": rival, "content_hash": "sha256:" + hash_b, "body": body_b, "title": "B", "amount_micro_algo": 3_000_000})
+                             {"sender": rival, "content_hash": "sha256:" + hash_b, "body": body_b, "title": "B", "amount_micro_algo": stake_b})
         incumbent_boxes = len(((plan_b.get("atomic_group") or [{}, {}])[1].get("foreign_boxes_b64")) or [])
         exec_plan(a, rival_sk, app_id, plan_b)
         st, _, idx = http("GET", f"{base}/api/posts")
@@ -280,7 +341,7 @@ def main() -> int:
         # 14 the winner exits the top: one app call, the index follows the chain
         before = row.get("top_hash")
         st, _, up = http("POST", f"{base}/api/posts/{slot}/unstake",
-                         {"sender": rival, "content_hash": "sha256:" + hash_b, "amount_micro_algo": 3_000_000})
+                         {"sender": rival, "content_hash": "sha256:" + hash_b, "amount_micro_algo": stake_b})
         leg = (up.get("atomic_group") or [{}])[0]
         txid_u = exec_plan(a, rival_sk, app_id, up)
         st, _, idx2 = http("GET", f"{base}/api/posts")

@@ -31,7 +31,7 @@
 <article class="doc">
 
 <h1>Agent integration — exact-algo payments and MCP</h1>
-<p>Status: deployed at the edge (Pages Functions + D1) for the v4 slot auction. <code>/api/posts</code> (free index), <code>/api/meta</code> and <code>/mcp</code> (handshake) respond now. Paid paths activate once the operator sets the payment bindings (X402_SECRET, PAY_TO, ALGOD_URL) and the chain bindings (APP_ID, APP_ADDRESS, ALGOD_URL); until then they return 503. Localnet verification: contract e2e 8/8, edge paths 15/15 including plan execution on chain.</p>
+<p>Status: deployed at the edge (Pages Functions + D1) for the v4 slot auction. <code>/api/posts</code> (free index), <code>/api/meta</code> and <code>/mcp</code> (handshake) respond now. Paid paths activate once the operator sets the payment bindings (X402_SECRET, PAY_TO, ALGOD_URL) and the chain bindings (APP_ID, APP_ADDRESS, ALGOD_URL); until then they return 503. TestNet pilot live (app 774974749, Nodely algod). Localnet verification: contract e2e 8/8, edge paths 15/15 including plan execution on chain. Stake, index and paid read are confirmed on the live network with real payments.</p>
 <blockquote><p>Payment reference client: <code>server/x402_native/</code>. <code>server/mcp/</code> is the v1-v3 surface history. Background and measurements: whitepaper sections 3-6 to 3-8.</p></blockquote>
 
 <h2>1. Up front: we do not implement the x402 standard</h2>

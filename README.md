@@ -9,7 +9,7 @@ Site: `avouchprotocol.com` (Cloudflare Pages).
 
 - 사이트(ko/en) + 백서: `site/`, `content/`
 - 계약(Algorand, PuyaPy): `contracts/`
-- 상태: v4 슬롯 경매 로컬넷 e2e 8/8, 엣지 경로 15/15, 감사 전, 메인넷 미배포
+- 상태: v4 슬롯 경매 TestNet 배포·라이브(app 774974749), 로컬넷 e2e 8/8, 엣지 경로 15/15, 감사 전, 메인넷 미배포
 
 ## 구조
 
@@ -112,6 +112,26 @@ ARC-4 셀렉터는 SHA-512/256의 앞 4바이트이고 Workers의 WebCrypto에�
 객체를 벗겨야 한다). `payload.txn`은 msgpack 바이트의 base64이고, 일부 py-algorand-sdk 버전은
 `msgpack_encode`가 이미 base64를 반환하므로 이중 인코딩하면 디코더가 깨진다. Pages 캐치올은
 `context.params`를 신뢰하지 말고 URL에서 경로를 다시 도출해야 한다.
+
+## TestNet 배포
+
+    ~/workspace/algorand/avouch-contracts/.venv/bin/python scripts/deploy_slot_testnet.py --new-account
+    # 출력된 주소를 디스펜서로 펀딩 (algokit dispenser login → fund, 하루 10 ALGO 한도)
+    ~/workspace/algorand/avouch-contracts/.venv/bin/python scripts/deploy_slot_testnet.py --export
+
+배포 산출물은 저장소 밖 `~/.config/avouch/testnet-app.json`(앱 id, 앱 주소, 트레저리 키)에 남는다.
+Nodely 공개 엔드포인트(`https://testnet-api.algonode.cloud`)를 쓰므로 ALGOD_TOKEN이 필요 없다.
+Pages 프로덕션 바인딩은 시크릿으로 넣는다:
+
+    printf '%s' "<32바이트 hex>" | npx wrangler pages secret put X402_SECRET --project-name avouch
+    for kv in PAY_TO=<treasury> TREASURY=<treasury> ALGOD_URL=https://testnet-api.algonode.cloud \
+      APP_ID=<app id> APP_ADDRESS=<app addr> X402_NETWORK=algorand:SGO1GKSzyE7IEPItTxCByw9x8FmnrCDe; do
+      printf '%s' "${kv#*=}" | npx wrangler pages secret put "${kv%%=*}" --project-name avouch; done
+    printf '' | npx wrangler pages secret put ALGOD_TOKEN --project-name avouch
+    npx wrangler pages deploy site --project-name avouch --branch main
+
+시크릿은 다음 배포부터 적용된다. 라이브 검증은 `scripts/e2e_worker_localnet.py --base https://avouchprotocol.com --app-id <id> --network testnet`.
+TestNet 플레이어 키는 `~/.config/avouch/testnet-players.json`에 남겨 재실행 시 재사용한다(디스펜서 하루 한도 10 ALGO).
 
 ## 라이선스
 

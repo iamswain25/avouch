@@ -6,8 +6,8 @@
 > transaction. There is no jury, no ruling, no challenge window and no arbiter: the
 > protocol publishes stake, epoch and replacement history, and readers decide.
 
-Status: v4 slot auction contract implemented and verified on localnet (contract e2e 8/8,
-edge paths 15/15 including on-chain execution). Unaudited, not deployed to mainnet.
+Status: v4 slot auction deployed on Algorand TestNet (app 774974749, Nodely algod) and verified on
+localnet (contract e2e 8/8, edge paths 15/15). Unaudited, not deployed to mainnet.
 
 ## Payment
 

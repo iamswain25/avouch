@@ -85,6 +85,7 @@
     "unstake_method": "unstake(uint64,uint64)void",
     "fee_bps": 5000,
     "winner_share_bps": 5000,
-    "note": "stake and unstake are not x402 resources; the API returns a transaction plan and the client signs it"
+    "note": "stake and unstake are not x402 resources; the API returns a transaction plan and the client signs it",
+    "testnet_app_id": 774974749
   }
 }

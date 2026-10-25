@@ -11,12 +11,31 @@
     "note": "x402-shaped envelope, native ALGO settlement, not compatible with standard x402 clients"
   },
   "services": [
-    { "name": "web", "endpoint": "https://avouchprotocol.com/en/", "status": "live" },
-    { "name": "agent-docs", "endpoint": "https://avouchprotocol.com/en/agents", "status": "live" },
-    { "name": "MCP", "endpoint": "https://avouchprotocol.com/mcp", "transport": "streamable-http", "status": "live" },
-    { "name": "source", "endpoint": "https://github.com/iamswain25/avouch", "status": "live" }
+    {
+      "name": "web",
+      "endpoint": "https://avouchprotocol.com/en/",
+      "status": "live"
+    },
+    {
+      "name": "agent-docs",
+      "endpoint": "https://avouchprotocol.com/en/agents",
+      "status": "live"
+    },
+    {
+      "name": "MCP",
+      "endpoint": "https://avouchprotocol.com/mcp",
+      "transport": "streamable-http",
+      "status": "live"
+    },
+    {
+      "name": "source",
+      "endpoint": "https://github.com/iamswain25/avouch",
+      "status": "live"
+    }
   ],
-  "supportedTrust": ["crypto-economic"],
+  "supportedTrust": [
+    "crypto-economic"
+  ],
   "metadata": {
     "spec": "https://avouchprotocol.com/.well-known/exact-algo.json",
     "llms_txt": "https://avouchprotocol.com/llms.txt",
@@ -24,6 +43,8 @@
     "stake_asset": "ALGO",
     "model": "slot auction: stake/unstake, largest total holds the slot",
     "arbiter": "none",
-    "contract": "stake(pay,uint64,byte[])void, unstake(uint64,uint64)void"
+    "contract": "stake(pay,uint64,byte[])void, unstake(uint64,uint64)void",
+    "testnet_app_id": 774974749,
+    "status": "testnet pilot live, unaudited, not on mainnet"
   }
 }
