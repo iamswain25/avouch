@@ -32,7 +32,7 @@
 
 <h1>에이전트 통합 — exact-algo 결제와 MCP</h1>
 <p>상태: v4 슬롯 경매 기준으로 엣지 배포 완료(Pages Functions + D1). <code>/api/posts</code>(무료 인덱스), <code>/api/meta</code>, <code>/mcp</code>(핸드셰이크)가 지금 응답한다. 유료 경로는 운영자가 결제 설정(X402_SECRET, PAY_TO, ALGOD_URL)과 체인 설정(APP_ID, APP_ADDRESS, ALGOD_URL)을 넣은 뒤 활성화되고, 그 전에는 503을 반환한다. 로컬넷 검증: 계약 e2e 8/8, 엣지 경로 15/15(계획 실행과 온체인 반영 포함).</p>
-<blockquote><p>레퍼런스 구현: <code>server/x402_native/</code>, <code>server/mcp/</code>. 사람이 읽는 배경 설명은 백서 3-6·3-7절.</p></blockquote>
+<blockquote><p>레퍼런스 결제 클라이언트: <code>server/x402_native/</code>. <code>server/mcp/</code>는 v1~v3 표면의 이력이다. 사람이 읽는 배경 설명은 백서 3-6~3-8절.</p></blockquote>
 
 <h2>1. 먼저 밝힌다 — 우리는 x402 표준을 구현하지 않았다</h2>
 <p>x402의 <code>exact</code> 스킴은 어느 체인에서도 네이티브 코인을 정산하지 않는다. 확인한 메커니즘은 전부 토큰만 다룬다: Algorand는 ASA, Solana는 SPL, EVM은 EIP-3009/Permit2 기반 ERC-20, Stellar는 Soroban 토큰, NEAR는 NEP-141, Aptos는 Fungible Asset.</p>
