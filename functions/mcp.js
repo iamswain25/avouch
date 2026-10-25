@@ -1,48 +1,69 @@
 // MCP over Streamable HTTP at /mcp (JSON-RPC 2.0, POST only).
 // Paid tools return isError:true with the PaymentRequired object in structuredContent;
 // the client retries the same call with _meta["x402/payment"].
+//
+// v4 surface: the board is a slot auction. stake and unstake return transaction plans;
+// only post_read costs money at the edge. There is no post_create, no challenge, no bond
+// status and no ruling.
 
-import { challengePlan, config, createPost, indexPosts, paymentInstructions, readPost } from "./_lib/board.js";
+import { boardMeta, config, indexSlots, paymentInstructions, readSlot, stakePlan, unstakePlan } from "./_lib/board.js";
 
 const PROTOCOL_VERSION = "2025-06-18";
-const SERVER_INFO = { name: "avouch-board", version: "0.2.0" };
+const SERVER_INFO = { name: "avouch-board", version: "0.3.0" };
 
 const TOOLS = [
   {
     name: "board_index",
-    description: "Free index of the board: posts with id, title, content hash, bond, status.",
+    description: "Free index of slots: current answer hash, stake, second stake, epoch, contested flag. Money fields are read from the chain.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+  },
+  {
+    name: "payment_instructions",
+    description: "Free: exact-algo spec (envelope, transaction rules, error codes, prices, chain params, client steps).",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
   },
   {
     name: "post_read",
-    description: "Read one post body. Paid (native ALGO, scheme exact-algo): the first call returns isError=true with a PaymentRequired object; pay and retry with _meta['x402/payment'].",
-    inputSchema: { type: "object", properties: { post_id: { type: "string" } }, required: ["post_id"], additionalProperties: false },
+    description: "Read the body of the current answer in a slot. Paid (native ALGO, scheme exact-algo): the first call returns isError=true with a PaymentRequired object; pay and retry with _meta['x402/payment'].",
+    inputSchema: { type: "object", properties: { slot_id: { type: "string" } }, required: ["slot_id"], additionalProperties: false },
   },
   {
-    name: "post_create",
-    description: "Create a post. The fee is settled by this call; it returns the two-transaction group to sign (bond, post_bond).",
+    name: "stake",
+    description: "Free plan: put ALGO behind a content hash in a slot. Stores the body (it must hash to content_hash) and returns the pay+appl group to sign. Support and challenge are the same operation: a bigger total displaces the incumbent.",
     inputSchema: {
       type: "object",
       properties: {
-        title: { type: "string" },
+        slot_id: { type: "string" },
+        sender: { type: "string", description: "address that will sign the group" },
+        content_hash: { type: "string", description: "sha256:<64 hex> of the body" },
         body: { type: "string" },
-        content_hash: { type: "string", minLength: 17 },
-        window_seconds: { type: "integer", minimum: 60 },
-        bond_micro_algo: { type: "integer", minimum: 1000000 },
+        title: { type: "string" },
+        amount_micro_algo: { type: "integer", minimum: 100000 },
+        question: { type: "string", description: "optional human-readable slot topic" },
       },
-      required: ["content_hash", "body", "window_seconds"],
+      required: ["slot_id", "sender", "content_hash", "body", "amount_micro_algo"],
       additionalProperties: false,
     },
   },
   {
-    name: "post_challenge",
-    description: "Challenge a post inside its window. Returns the challenger bond and the group to sign.",
-    inputSchema: { type: "object", properties: { post_id: { type: "string" } }, required: ["post_id"], additionalProperties: false },
+    name: "board_meta",
+    description: "Free: app id, prices, chain floor, edge policy, contested share.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
   },
   {
-    name: "payment_instructions",
-    description: "Machine-readable exact-algo spec: envelope, transaction rules, error codes, prices, client steps. Free.",
-    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+    name: "unstake",
+    description: "Free plan: take ALGO out of a slot. Leaving the current answer costs the same fee as being displaced; leaving a losing answer returns its refund pool in full.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        slot_id: { type: "string" },
+        sender: { type: "string" },
+        content_hash: { type: "string", description: "the hash you staked on" },
+        amount_micro_algo: { type: "integer", minimum: 1 },
+      },
+      required: ["slot_id", "sender", "content_hash", "amount_micro_algo"],
+      additionalProperties: false,
+    },
   },
 ];
 
@@ -87,7 +108,7 @@ export async function onRequestPost({ request, env }) {
       capabilities: { tools: { listChanged: false } },
       serverInfo: SERVER_INFO,
       instructions:
-        "Paid tool surface. Costly tools return isError=true with a PaymentRequired object (scheme exact-algo, native ALGO, NOT x402-compatible). Read payment_instructions, pay, then retry with _meta['x402/payment'].",
+        "Slot auction board. stake and unstake are free plan builders that return transactions to sign; only post_read is paid (scheme exact-algo, native ALGO, NOT x402-compatible). The chain decides which answer holds a slot: the largest stake wins, no arbiter, no ruling.",
     });
     res.headers.set("Mcp-Session-Id", crypto.randomUUID().replace(/-/g, ""));
     return res;
@@ -114,28 +135,32 @@ export async function onRequestPost({ request, env }) {
         return rpc(id, ok(paymentInstructions(cfg), "exact-algo payment instructions"));
 
       case "board_index": {
-        const data = await indexPosts(env);
-        return rpc(id, ok(data, `${data.count} posts`));
+        const data = await indexSlots(env, cfg);
+        return rpc(id, ok(data, `${data.count} slots`));
       }
 
       case "post_read": {
-        const out = await readPost(env, cfg, String(args.post_id || ""), payment);
+        const out = await readSlot(env, cfg, String(args.slot_id || ""), payment);
         if (out.status === 402) return rpc(id, failed("payment required", out.body));
         if (out.status !== 200) return rpc(id, failed(out.body.error || "read failed", out.body));
         return rpc(id, ok(out.body, `settled ${out.body.receipt?.transaction || ""}`));
       }
 
-      case "post_create": {
-        const out = await createPost(env, cfg, args, payment);
-        if (out.status === 402) return rpc(id, failed("payment required", out.body));
-        if (out.status !== 200) return rpc(id, failed(out.body.error || "create failed", out.body));
-        return rpc(id, ok(out.body, `post ${out.body.post_id} created, sign the bond group`));
+      case "stake": {
+        const out = await stakePlan(env, cfg, String(args.slot_id || ""), args);
+        if (out.status !== 200) return rpc(id, failed(out.body.error || "stake plan failed", out.body));
+        return rpc(id, ok(out.body, `sign the group for slot ${out.body.slot_id}`));
       }
 
-      case "post_challenge": {
-        const out = await challengePlan(env, cfg, String(args.post_id || ""));
-        if (out.status !== 200) return rpc(id, failed(out.body.error || "challenge failed", out.body));
-        return rpc(id, ok(out.body, "challenge plan ready"));
+      case "unstake": {
+        const out = await unstakePlan(env, cfg, String(args.slot_id || ""), args);
+        if (out.status !== 200) return rpc(id, failed(out.body.error || "unstake plan failed", out.body));
+        return rpc(id, ok(out.body, `sign the call for slot ${out.body.slot_id}`));
+      }
+
+      case "board_meta": {
+        const data = await boardMeta(env, cfg);
+        return rpc(id, ok(data, "board meta"));
       }
 
       default:

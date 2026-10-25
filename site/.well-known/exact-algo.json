@@ -1,6 +1,6 @@
 {
   "scheme": "exact-algo",
-  "status": "spec-fixed-localnet-verified",
+  "status": "v4-slot-auction-localnet-verified",
   "standard": "NOT x402-compatible: x402 exact settles ASA/SPL/ERC-20 tokens only, this settles native ALGO",
   "version": 2,
   "network": {
@@ -16,14 +16,28 @@
       "x402Version": 2,
       "scheme": "exact",
       "network": "<accepts[].network>",
-      "payload": { "txn": "<base64 msgpack SignedTransaction of a native pay>" }
+      "payload": {
+        "txn": "<base64 msgpack SignedTransaction of a native pay>"
+      }
     }
   },
   "response": {
     "status": 402,
-    "body": { "x402Version": 2, "error": "payment required", "accepts": ["..."] },
+    "body": {
+      "x402Version": 2,
+      "error": "payment required",
+      "accepts": [
+        "..."
+      ]
+    },
     "success_header": "PAYMENT-RESPONSE",
-    "success_body": { "success": true, "transaction": "<txid>", "confirmedRound": 0, "payer": "<address>", "amount": 0 }
+    "success_body": {
+      "success": true,
+      "transaction": "<txid>",
+      "confirmedRound": 0,
+      "payer": "<address>",
+      "amount": 0
+    }
   },
   "transaction_rules": [
     "type must be pay and the transaction must not be grouped",
@@ -46,16 +60,31 @@
   "prices_micro_algo": {
     "board_index": 0,
     "post_read": 1000,
-    "post_fee": 20000,
-    "min_bond": 1000000,
-    "peg_rule": "min_bond = ceil(target_usd / ALGO_USD * 1.25), refreshed weekly"
+    "min_stake": 100000,
+    "policy_first_stake": 1000000,
+    "policy_note": "POLICY is an edge rule with a public change log, not a contract constant"
   },
   "mcp": {
     "transport": "streamable-http",
     "endpoint": "/mcp",
     "protocol_version": "2025-06-18",
     "payment_key": "_meta.x402/payment",
-    "tools": ["board_index", "post_read", "post_create", "post_challenge", "payment_instructions"]
+    "tools": [
+      "board_index",
+      "board_meta",
+      "payment_instructions",
+      "post_read",
+      "stake",
+      "unstake"
+    ]
   },
-  "reference_implementation": "https://github.com/iamswain25/avouch/tree/main/server/x402_native"
+  "reference_implementation": "https://github.com/iamswain25/avouch/tree/main/server/x402_native",
+  "on_chain": {
+    "model": "slot auction: the largest stake holds the slot, no arbiter and no ruling",
+    "stake_method": "stake(pay,uint64,byte[])void",
+    "unstake_method": "unstake(uint64,uint64)void",
+    "fee_bps": 5000,
+    "winner_share_bps": 5000,
+    "note": "stake and unstake are not x402 resources; the API returns a transaction plan and the client signs it"
+  }
 }

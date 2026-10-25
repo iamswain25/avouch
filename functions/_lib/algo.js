@@ -188,6 +188,15 @@ export class Algod {
     return text.trim().replace(/^"|"$/g, "");
   }
 
+  async box(appId, nameBytes) {
+    const name = encodeURIComponent(bytesToB64(nameBytes));
+    const r = await fetch(`${this.url}/v2/applications/${appId}/box?name=b64:${name}`, { headers: this.headers() });
+    if (r.status === 404) return null;
+    if (!r.ok) throw new Error(`algod box ${r.status}`);
+    const j = await r.json();
+    return b64ToBytes(j.value);
+  }
+
   async waitFor(txid, rounds = 12) {
     for (let i = 0; i < rounds; i++) {
       const r = await fetch(`${this.url}/v2/transactions/pending/${txid}`, { headers: this.headers() });

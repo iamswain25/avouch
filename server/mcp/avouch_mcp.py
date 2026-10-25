@@ -1,4 +1,8 @@
-"""Avouch board over MCP (Streamable HTTP, JSON-RPC 2.0) with native-ALGO payment.
+"""NOTE (2026-10-25): this reference server implements the v1-v3 surface (post_create, post_challenge,
+board_index). The live surface is functions/mcp.js in the v4 slot auction (stake, unstake, post_read).
+Kept as the x402/MCP client reference; do not treat its tools as current.
+
+Avouch board over MCP (Streamable HTTP, JSON-RPC 2.0) with native-ALGO payment.
 
 Why this exists: an agent that speaks MCP should not need to know our HTTP shape.
 It gets tools, and when a tool costs money the result carries the payment

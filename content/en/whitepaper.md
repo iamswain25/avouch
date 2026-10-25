@@ -101,6 +101,26 @@ The content hash is committed with the bond because a bond that is not tied to c
 
 auth-capture is EVM-only, its server and facilitator implementations do not exist, and upstream merged a fee-ABI change that breaks signature derivation on redeploy. On Algorand the whole mechanism is one app escrow account, one box and a few ASA transfers: 863 lines of TEAL, five passing LocalNet scenarios, and a cost per lifecycle one third of Base. Waiting for someone else's facilitator costs more than building the escrow.
 
+### 3-8. v4 slot auction: the current model, with no ruling (implemented 2026-10-25)
+
+The state machine in 3-2 to 3-4 (bond, challenge, jury, ruling) is the v1-v3 history. The current model removes judgment from the protocol entirely and folds what is left into a single comparison.
+
+    slot = question (slot_id)      answer = content_hash      money = the total behind that answer
+    stake(slot_id, content_hash, pay)     add money (same hash = support, different hash = challenge)
+    unstake(slot_id, amount)              take it out
+
+Three rules. The answer holding a slot is the hash with the largest total; a tie goes to whoever got there first. When a different hash's total passes the incumbent's, the slot flips inside the transaction that crossed the line. Withdrawal is allowed at any time. Replacement is a result, not an operation, so there is no settle, no ruling and no separate challenge object.
+
+The fee is charged once, for leaving the top: f = 50%. Being displaced and walking away cost the same, so escaping has no advantage and no blocking rule (floor, decay, blockline) is needed. Half of f goes to the backers of the side that took the slot, half to the treasury; a voluntary exit sends all of it to the treasury. Money that never held the slot and withdrawals from a hash that already lost are free.
+
+Deterrence is not a goal. The protocol does not stop a lie; it publishes its price. Every answer carries stake, epoch and replacement history, and readers judge with those numbers. A lie that lasted twenty days is not a failure but the datum that its price was 10 ALGO for those twenty days. The contract therefore has two parameters: f (5000 bps) and a chain floor min_stake (0.1 ALGO, covering the 0.0754 ALGO box MBR). The entry policy (1 ALGO to open an empty slot) is an edge setting, not a contract constant.
+
+No automatic price formula. A formula that prices entry by the stake it gates is self-referential: with beta*W<1 it converges to the floor and with beta*W>1 it diverges; there is no stable middle. And a "creator count" metric cannot be verified on-chain, because addresses are free. What is verifiable is an address, an amount, a time, and slot creations that each cost money.
+
+Implementation. `contracts/src/slot_auction.py` (PuyaPy 5.10.1): two write methods, three read methods, three boxes (slot, answer, stake). Payouts are pull-based: a displacement credits the winning hash's accumulator and leaves the losing side a refund pool, so no caller is ever iterated over. LocalNet e2e 8/8. Measured fees: stake 2,000 / stake that displaces 3,000 / unstake 2,000 / leaving the top 3,000 uALGO. Box MBR is 18,900 (slot) + 35,300 (answer) + 38,900 (stake, returned on exit) uALGO. Integer division leaves about 1 uALGO of dust per displacement.
+
+Still open in v4: who pays box MBR (today the app float), the freeze on re-staking a displaced hash, the missing immediate re-comparison after a partial withdrawal by the top, shrinking the API to stake/unstake/read, and an audit (no app rekey/close, box key collisions, inner transaction fee caps).
+
 ## 4. Economics
 
 ### 4-1. Measured on-chain cost
@@ -257,6 +277,11 @@ Phase 0 — complete (2026-10-23)
 - 5/5 LocalNet scenarios: slash, release, unilateral reclaim (early call rejected), silent jury, authority guard
 - Measured: lifecycle 7,000 uALGO ($0.000733), box MBR 0.0585 ALGO per post
 - Repository: `contracts/`
+
+Phase 0.5 — complete (2026-10-25)
+- v4 slot auction contract (`contracts/src/slot_auction.py`): stake/unstake only, no jury, no window, no ruling
+- LocalNet e2e 8/8 (displacement, succession, reopen, guards, escrow invariant), fees 2,000-3,000 uALGO
+- Design fixed: f=50% (winner 25% + treasury 25%), chain floor 0.1 ALGO, entry policy 1 ALGO at the edge
 
 Phase 1 — TestNet pilot
 - x402 fee in the same atomic group (USDC to treasury)

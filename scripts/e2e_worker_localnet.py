@@ -1,13 +1,19 @@
 """End-to-end test of the edge deployment (wrangler pages dev + localnet algod).
 
-Covers the REST surface and the MCP surface against the same D1 database and the
-same payment verifier, on a real chain (algokit localnet).
+Covers the v4 slot auction surface: free index and meta, the paid read of the current
+answer, stake and unstake plans, and (with --app-id) the plans actually executed against
+the deployed contract on localnet, after which the index must report what the chain says.
 
 Prereq:
-  wrangler pages dev --port 8789 --binding X402_SECRET=... --binding PAY_TO=<addr> \
-    --binding ALGOD_URL=http://localhost:4001 --binding ALGOD_TOKEN=<token> ...
+  algokit localnet start
+  # deploy contracts/src/slot_auction.py, fund the app account, note app id/address
+  npx wrangler d1 execute avouch-board --local --file=schema.sql
+  npx wrangler pages dev --port 8789 \
+    --binding X402_SECRET=devsecret --binding PAY_TO=<treasury addr> \
+    --binding ALGOD_URL=http://localhost:4001 --binding ALGOD_TOKEN=<token> \
+    --binding APP_ID=<app id> --binding APP_ADDRESS=<app addr> --binding TREASURY=<treasury addr>
 
-Run: .venv/bin/python scripts/e2e_worker_localnet.py [--base http://127.0.0.1:8789]
+Run: .venv/bin/python scripts/e2e_worker_localnet.py [--base http://127.0.0.1:8789] [--app-id N]
 """
 
 from __future__ import annotations
@@ -16,11 +22,10 @@ import argparse
 import base64
 import hashlib
 import json
-import os
-import sys
 import time
 import urllib.error
 import urllib.request
+from pathlib import Path
 
 from algosdk import account, encoding, transaction
 from algosdk.kmd import KMDClient
@@ -82,6 +87,31 @@ def pay_header(a, sk, accept):
     return base64.b64encode(json.dumps(env).encode()).decode(), signed.transaction.get_txid()
 
 
+def exec_plan(a, sk, app_id, plan):
+    """Sign and submit a plan returned by the API (pay + appl, or appl only)."""
+    sender = account.address_from_private_key(sk)
+    txns = []
+    for leg in plan["atomic_group"]:
+        sp = a.suggested_params()
+        sp.flat_fee = True
+        sp.fee = int(leg.get("fee_micro_algo") or 1000)
+        if leg["txn"] == "pay":
+            txns.append(transaction.PaymentTxn(sender, sp, leg["receiver"], int(leg["amount_micro_algo"]),
+                                               note=str(leg.get("note") or "").encode()))
+        else:
+            args = [bytes.fromhex(x) for x in leg["app_args_hex"]]
+            boxes = [(app_id, base64.b64decode(b)) for b in leg["foreign_boxes_b64"]]
+            txns.append(transaction.ApplicationNoOpTxn(
+                sender, sp, app_id, app_args=args, boxes=boxes,
+                accounts=list(leg.get("foreign_accounts") or []),
+            ))
+    if len(txns) > 1:
+        transaction.assign_group_id(txns)
+    txid = a.send_transactions([t.sign(sk) for t in txns])
+    transaction.wait_for_confirmation(a, txid, 10)
+    return txid
+
+
 class Mcp:
     def __init__(self, base):
         self.url = f"{base}/mcp"
@@ -102,102 +132,165 @@ class Mcp:
         return self.call("tools/call", params)
 
 
+def teal_selector(signature):
+    """ARC-4 selectors are sha512/256, which python's OpenSSL build here lacks; the compiled
+    teal lists them, so the test reads the contract it is actually talking to."""
+    teal = (Path(__file__).resolve().parent.parent / "contracts" / "src" / "artifacts" / "SlotAuction.approval.teal").read_text()
+    for line in teal.splitlines():
+        if "pushbytess" in line and f'method "{signature}"' in line:
+            labels = line.split("//")[0].replace("pushbytess", "").split()
+            names = line.split('method "')[1:]
+            for label, name in zip(labels, names):
+                if name.split('"')[0] == signature:
+                    return label.replace("0x", "")
+    raise SystemExit(f"selector for {signature} not found in the compiled teal")
+
+
+def slot_row(idx, slot):
+    return next((s for s in idx.get("slots", []) if s.get("slot_id") == slot), {})
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--base", default="http://127.0.0.1:8789")
+    ap.add_argument("--app-id", type=int, default=0)
     args = ap.parse_args()
     base = args.base.rstrip("/")
+    app_id = args.app_id
 
     a, dispenser_sk, dispenser = connect()
     payer_sk, payer = account.generate_account()
-    sp = a.suggested_params()
-    fund = transaction.PaymentTxn(dispenser, sp, payer, 10_000_000)
-    transaction.wait_for_confirmation(a, a.send_transaction(fund.sign(dispenser_sk)), 10)
+    rival_sk, rival = account.generate_account()
+    for sk, addr in ((payer_sk, payer), (rival_sk, rival)):
+        sp = a.suggested_params()
+        fund = transaction.PaymentTxn(dispenser, sp, addr, 20_000_000)
+        transaction.wait_for_confirmation(a, a.send_transaction(fund.sign(dispenser_sk)), 10)
 
     results = []
     stamp = str(int(time.time()))
-    body_text = f"edge deploy body {stamp}"
-    content_hash = "sha256:" + hashlib.sha256(body_text.encode()).hexdigest()
+    slot = str(int(time.time()) % 100000)
+    body_a = f"slot answer A {stamp}"
+    hash_a = hashlib.sha256(body_a.encode()).hexdigest()
+    body_b = f"slot answer B {stamp}"
+    hash_b = hashlib.sha256(body_b.encode()).hexdigest()
 
-    # 1 free index
-    st, _, body = http("GET", f"{base}/api/posts")
-    results.append(("1 GET /api/posts (free)", st == 200 and "posts" in body, f"{st} count={body.get('count')}"))
+    # 1 free meta
+    st, _, meta = http("GET", f"{base}/api/meta")
+    results.append(("1 GET /api/meta (free)", st == 200 and meta.get("min_stake_micro_algo") == 100000
+                    and meta.get("policy_first_stake_micro_algo") == 1000000,
+                    f"{st} app={meta.get('app_id')} floor={meta.get('min_stake_micro_algo')} policy={meta.get('policy_first_stake_micro_algo')}"))
 
-    # 2 MCP handshake
+    # 2 free index
+    st, _, idx = http("GET", f"{base}/api/posts")
+    results.append(("2 GET /api/posts (free)", st == 200 and "slots" in idx, f"{st} count={idx.get('count')} chain={idx.get('chain')}"))
+
+    # 3 MCP handshake
     mcp = Mcp(base)
     st, body = mcp.call("initialize", {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "edge-test", "version": "1"}})
     ok = st == 200 and body.get("result", {}).get("serverInfo", {}).get("name") == "avouch-board" and mcp.session
-    results.append(("2 MCP initialize + session", bool(ok), f"{st} session={str(mcp.session)[:8]}"))
+    results.append(("3 MCP initialize + session", bool(ok), f"{st} session={str(mcp.session)[:8]}"))
     mcp.call("notifications/initialized")
 
-    # 3 tools/list
+    # 4 tools/list: stake/unstake in, create/challenge out
     st, body = mcp.call("tools/list")
     names = [t["name"] for t in body.get("result", {}).get("tools", [])]
-    results.append(("3 MCP tools/list", st == 200 and len(names) == 5, str(names)))
+    results.append(("4 MCP tools/list: stake+unstake, no create/challenge",
+                    st == 200 and {"stake", "unstake", "post_read", "board_index"} <= set(names)
+                    and not ({"post_create", "post_challenge"} & set(names)), str(names)))
 
-    # 4 unpaid create -> 402
-    st, _, unpaid = http("POST", f"{base}/api/posts", {"title": "edge", "body": body_text, "content_hash": content_hash, "window_seconds": 3600})
-    acc = (unpaid.get("accepts") or [{}])[0]
-    results.append(("4 POST /api/posts unpaid -> 402", st == 402 and acc.get("asset") == "ALGO", f"{st} amount={acc.get('maxAmountRequired')}"))
+    # 5 stake plan rejected when the body does not match the hash
+    st, _, bad = http("POST", f"{base}/api/posts/{slot}/stake",
+                      {"sender": payer, "content_hash": "sha256:" + hash_a, "body": body_a + "tampered", "amount_micro_algo": 2_000_000})
+    results.append(("5 stake plan rejects a body that does not match the hash", st == 400, f"{st} {bad.get('error')}"))
 
-    # 5 pay the fee -> post created
-    hdr, fee_txid = pay_header(a, payer_sk, acc)
-    st, _, created = http("POST", f"{base}/api/posts", {"title": "edge", "body": body_text, "content_hash": content_hash, "window_seconds": 3600},
-                          {"PAYMENT-SIGNATURE": hdr})
-    post_id = created.get("post_id")
-    legs = created.get("atomic_group") or []
-    results.append(("5 POST /api/posts paid -> created", st == 200 and bool(post_id) and len(legs) == 2,
-                    f"{st} id={post_id} legs={len(legs)} fee={created.get('fee_settled', {}).get('transaction', '')[:10]}"))
+    # 6 first stake below the edge policy
+    st, _, low = http("POST", f"{base}/api/posts/{slot}/stake",
+                      {"sender": payer, "content_hash": "sha256:" + hash_a, "body": body_a, "amount_micro_algo": 100_000})
+    results.append(("6 first stake below policy refused, both floors published",
+                    st == 400 and low.get("policy_first_stake_micro_algo") == 1000000, f"{st} {low.get('error')}"))
 
-    # 6 replay the same payment
-    st, _, replay = http("POST", f"{base}/api/posts", {"title": "edge", "body": body_text + "x", "content_hash": content_hash + "x", "window_seconds": 3600},
-                         {"PAYMENT-SIGNATURE": hdr})
-    results.append(("6 replayed payment rejected", st == 402, f"{st} err={replay.get('error')}"))
+    # 7 stake plan shape
+    st, _, plan_a = http("POST", f"{base}/api/posts/{slot}/stake",
+                         {"sender": payer, "content_hash": "sha256:" + hash_a, "body": body_a, "title": "A",
+                          "amount_micro_algo": 2_000_000, "question": "which answer holds this slot"})
+    legs = plan_a.get("atomic_group") or []
+    app_leg = legs[1] if len(legs) == 2 else {}
+    boxes = app_leg.get("foreign_boxes_b64") or []
+    expected_sel = teal_selector("stake(pay,uint64,byte[])void")
+    results.append(("7 stake plan: pay + appl, selector, 3 boxes",
+                    st == 200 and len(legs) == 2 and app_leg.get("app_args_hex", [""])[0] == expected_sel and len(boxes) == 3,
+                    f"{st} legs={len(legs)} sel={app_leg.get('app_args_hex', [''])[0]} boxes={len(boxes)}"))
 
-    # 7 paid read (REST)
-    st, _, unpaid_read = http("GET", f"{base}/api/posts/{post_id}")
-    acc2 = (unpaid_read.get("accepts") or [{}])[0]
-    hdr2, _ = pay_header(a, payer_sk, acc2)
-    st, _, read = http("GET", f"{base}/api/posts/{post_id}", None, {"PAYMENT-SIGNATURE": hdr2})
-    verified = (read.get("post") or {}).get("content_hash_verified")
-    results.append(("7 GET /api/posts/:id paid -> body + hash check", st == 200 and verified is True,
-                    f"{st} verified={verified} body={'edge' in str(read.get('post', {}).get('body', ''))}"))
+    # 8 MCP stake tool returns the same plan shape
+    st, mp = mcp.tool("stake", {"slot_id": slot, "sender": rival, "content_hash": "sha256:" + hash_b, "body": body_b, "amount_micro_algo": 1_000_000})
+    plan_b_mcp = mp.get("result", {}).get("structuredContent") or {}
+    results.append(("8 MCP stake plan", st == 200 and plan_b_mcp.get("slot_id") == slot and len(plan_b_mcp.get("atomic_group") or []) == 2,
+                    f"{st} legs={len(plan_b_mcp.get('atomic_group') or [])}"))
 
-    # 8 paid read through MCP (same resource shape)
-    st, mp = mcp.tool("post_read", {"post_id": post_id})
-    pay_req = mp.get("result", {}).get("structuredContent", {})
-    acc3 = (pay_req.get("accepts") or [{}])[0]
-    hdr3, _ = pay_header(a, payer_sk, acc3)
-    st, mp2 = mcp.tool("post_read", {"post_id": post_id}, payment=hdr3)
-    sc = mp2.get("result", {}).get("structuredContent", {})
-    results.append(("8 MCP post_read paid", mp2.get("result", {}).get("isError") is not True and bool(sc.get("receipt")),
-                    f"txid={str(sc.get('receipt', {}).get('transaction'))[:10]}"))
+    # 9 an empty slot has no body to sell
+    st, _, empty_read = http("GET", f"{base}/api/posts/{slot}")
+    results.append(("9 read of an empty slot is not sold", st in (409, 402), f"{st} {empty_read.get('error')}"))
 
-    # 9 duplicate content hash is an objective violation
-    st, _, dup_req = http("POST", f"{base}/api/posts", {"title": "edge", "body": body_text, "content_hash": content_hash, "window_seconds": 3600})
-    acc4 = (dup_req.get("accepts") or [{}])[0]
-    hdr4, _ = pay_header(a, payer_sk, acc4)
-    st, _, dup = http("POST", f"{base}/api/posts", {"title": "edge", "body": body_text, "content_hash": content_hash, "window_seconds": 3600},
-                      {"PAYMENT-SIGNATURE": hdr4})
-    results.append(("9 duplicate content_hash -> 409", st == 409, f"{st} {dup.get('error')}"))
+    if app_id:
+        # 10 the plan executes and the index reports what the chain says
+        txid = exec_plan(a, payer_sk, app_id, plan_a)
+        st, _, idx = http("GET", f"{base}/api/posts")
+        row = slot_row(idx, slot)
+        results.append(("10 on-chain stake: index reports chain state",
+                        row.get("top_hash") == "sha256:" + hash_a and row.get("top_stake_micro_algo") == 2_000_000 and row.get("epoch") == 1,
+                        f"txid={txid[:10]} top={str(row.get('top_hash'))[:16]} stake={row.get('top_stake_micro_algo')} epoch={row.get('epoch')}"))
 
-    # 10 tampered receiver
-    st_unpaid, _, req10 = http("POST", f"{base}/api/posts", {"title": "t", "body": "tamper " + stamp, "content_hash": "sha256:" + stamp, "window_seconds": 3600})
-    acc5 = dict((req10.get("accepts") or [{}])[0])
-    hdr5, _ = pay_header(a, payer_sk, acc5)
-    env = json.loads(base64.b64decode(hdr5))
-    signed = encoding.msgpack_decode(env["payload"]["txn"])
-    signed.transaction.receiver = account.generate_account()[1]
-    env["payload"]["txn"] = enc_txn(signed)
-    hdr5 = base64.b64encode(json.dumps(env).encode()).decode()
-    st, _, tampered = http("POST", f"{base}/api/posts", {"title": "t", "body": "tamper " + stamp, "content_hash": "sha256:" + stamp, "window_seconds": 3600},
-                           {"PAYMENT-SIGNATURE": hdr5})
-    results.append(("10 tampered receiver rejected", st == 402, f"{st} err={tampered.get('error')}"))
+        # 11 paid read of the current answer
+        st, _, unpaid_read = http("GET", f"{base}/api/posts/{slot}")
+        acc = (unpaid_read.get("accepts") or [{}])[0]
+        hdr, _ = pay_header(a, payer_sk, acc)
+        st, _, read = http("GET", f"{base}/api/posts/{slot}", None, {"PAYMENT-SIGNATURE": hdr})
+        ans = read.get("answer") or {}
+        results.append(("11 paid read returns the current answer, hash verified",
+                        st == 200 and ans.get("content_hash_verified") is True and ans.get("body") == body_a,
+                        f"{st} epoch={(read.get('slot') or {}).get('epoch')} verified={ans.get('content_hash_verified')}"))
 
-    # 11 challenge plan
-    st, _, plan = http("POST", f"{base}/api/posts/{post_id}/challenge", {})
-    results.append(("11 challenge plan", st == 200 and len(plan.get("atomic_group") or []) == 2,
-                    f"{st} bond={plan.get('challenger_bond_micro_algo')}"))
+        # 12 replayed payment rejected
+        st, _, replay = http("GET", f"{base}/api/posts/{slot}", None, {"PAYMENT-SIGNATURE": hdr})
+        results.append(("12 replayed payment rejected", st == 402, f"{st} {replay.get('error')}"))
+
+        # 13 a tampered payment (receiver swapped) is refused while the slot is live
+        st, _, req = http("GET", f"{base}/api/posts/{slot}")
+        acc_t = dict((req.get("accepts") or [{}])[0])
+        hdr_t, _ = pay_header(a, payer_sk, acc_t)
+        env_t = json.loads(base64.b64decode(hdr_t))
+        signed_t = encoding.msgpack_decode(env_t["payload"]["txn"])
+        signed_t.transaction.receiver = account.generate_account()[1]
+        env_t["payload"]["txn"] = enc_txn(signed_t)
+        hdr_t = base64.b64encode(json.dumps(env_t).encode()).decode()
+        st, _, tampered = http("GET", f"{base}/api/posts/{slot}", None, {"PAYMENT-SIGNATURE": hdr_t})
+        results.append(("13 tampered receiver rejected", st == 402, f"{st} {tampered.get('error')}"))
+
+        # 13 bigger rival stake displaces: new top, epoch 2, contested, incumbent box listed
+        st, _, plan_b = http("POST", f"{base}/api/posts/{slot}/stake",
+                             {"sender": rival, "content_hash": "sha256:" + hash_b, "body": body_b, "title": "B", "amount_micro_algo": 3_000_000})
+        incumbent_boxes = len(((plan_b.get("atomic_group") or [{}, {}])[1].get("foreign_boxes_b64")) or [])
+        exec_plan(a, rival_sk, app_id, plan_b)
+        st, _, idx = http("GET", f"{base}/api/posts")
+        row = slot_row(idx, slot)
+        results.append(("14 displacement: new top, epoch 2, replacements 1, incumbent box listed",
+                        row.get("top_hash") == "sha256:" + hash_b and row.get("epoch") == 2 and row.get("replacements") == 1 and incumbent_boxes == 4,
+                        f"top={str(row.get('top_hash'))[:16]} epoch={row.get('epoch')} replacements={row.get('replacements')} boxes={incumbent_boxes}"))
+
+        # 14 the winner exits the top: one app call, the index follows the chain
+        before = row.get("top_hash")
+        st, _, up = http("POST", f"{base}/api/posts/{slot}/unstake",
+                         {"sender": rival, "content_hash": "sha256:" + hash_b, "amount_micro_algo": 3_000_000})
+        leg = (up.get("atomic_group") or [{}])[0]
+        txid_u = exec_plan(a, rival_sk, app_id, up)
+        st, _, idx2 = http("GET", f"{base}/api/posts")
+        row2 = slot_row(idx2, slot)
+        results.append(("15 unstake plan executes and the index follows",
+                        st == 200 and leg.get("method") == "unstake(uint64,uint64)void" and row2.get("top_hash") != before,
+                        f"txid={txid_u[:10]} top={str(row2.get('top_hash'))[:16]} epoch={row2.get('epoch')}"))
+    else:
+        results.append(("10-15 chain checks skipped (no --app-id)", True, "plan-level only"))
+
 
     print()
     ok_all = True
