@@ -244,6 +244,8 @@ Settlement cadence (a public rule)
 - Otherwise it settles every 24 hours, from a minimum of 5,000 uALGO.
 - No read is ever held longer than seven days.
 
+The read payment itself is still per-transaction on chain (1,000 price plus a 1,000 uALGO chain fee, paid by the reader); only the maintainer distribution is batched. Cutting the per-read cost further at high traffic needs the channel model in 4-6; at this stage a read costs 2,000 uALGO in total (about $0.0002).
+
 The fee is 2,000 uALGO per batch (pay plus appcall, two transactions) and comes out of the treasury share. It is not added to the read price and not deducted from the maintainer pool: 10% of a 20,000 uALGO batch, or 50 uALGO per read at 40 reads.
 
 If the answer changed. When the answer served at read time is no longer the answer at settlement time (a replacement happened in between), that revenue goes to the treasury rather than to the wrong maintainers. It is recorded as `redirected:<timestamp>`.
