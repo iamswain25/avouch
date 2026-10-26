@@ -1,0 +1,32 @@
+scripts/build_whitepaper.py
+  h_247fbbde292880 49-51,63-65,81,84-92,155-157
+scripts/og/og-ko.html
+  h_247fbbde292880 1-120
+scripts/og/og.html
+  h_247fbbde292880 1-120
+scripts/og/render.sh
+  h_247fbbde292880 1-17
+site/en/agents.html
+  h_247fbbde292880 11-21
+site/en/index.html
+  h_247fbbde292880 11-21
+site/en/whitepaper.html
+  h_247fbbde292880 7,10-18
+site/ko/agents.html
+  h_247fbbde292880 11-21
+site/ko/index.html
+  h_247fbbde292880 11-21
+site/ko/whitepaper.html
+  h_247fbbde292880 7,10-18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "eb0df3fe29313adcaf4c1f45a009328a0e67bee3",
+  "prompts": {},
+  "humans": {
+    "h_247fbbde292880": {
+      "author": "swain <iamswain@hotmail.com>"
+    }
+  }
+}
