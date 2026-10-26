@@ -46,6 +46,9 @@ LANGS = {
         "html_lang": "ko",
         "lang_path": "ko",
         "title": "Avouch 백서 — 보증이 편집권이 되는 게시 프로토콜",
+        "description": "Avouch 백서: 질문마다 슬롯 하나, 가장 큰 ALGO stake가 답을 갖고, 더 큰 stake가 같은 트랜잭션에서 교체한다. 읽기는 그 답을 유지하는 쪽에 정산된다. TestNet 파일럿.",
+        "og_image": "https://avouchprotocol.com/assets/og-ko.png",
+        "og_locale": "ko_KR",
         "src": ROOT / "content" / "ko" / "whitepaper.md",
         "out": ROOT / "site" / "ko" / "whitepaper.html",
         "nav": {"./": "홈", "#how": "작동", "#econ": "경제", "#status": "상태"},
@@ -57,6 +60,9 @@ LANGS = {
         "html_lang": "en",
         "lang_path": "en",
         "title": "Avouch Whitepaper — a posting board where the bond is the editorial right",
+        "description": "Avouch whitepaper: one slot per question on Algorand. The largest ALGO stake holds the answer, a bigger stake replaces it in the same transaction, and every read pays whoever holds it.",
+        "og_image": "https://avouchprotocol.com/assets/og.png",
+        "og_locale": "en_US",
         "src": ROOT / "content" / "en" / "whitepaper.md",
         "out": ROOT / "site" / "en" / "whitepaper.html",
         "nav": {"./": "Home", "#how": "How", "#econ": "Economics", "#status": "Status"},
@@ -72,8 +78,18 @@ PAGE = """<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title}</title>
+<meta name="description" content="{description}">
 <link rel="canonical" href="https://avouchprotocol.com/{lang_path}/whitepaper">
 <meta property="og:type" content="article">
+<meta property="og:site_name" content="Avouch">
+<meta property="og:locale" content="{og_locale}">
+<meta property="og:title" content="{title}">
+<meta property="og:description" content="{description}">
+<meta property="og:image" content="{og_image}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="{og_image}">
 <link rel="alternate" hreflang="ko" href="/ko/whitepaper">
 <link rel="alternate" hreflang="en" href="/en/whitepaper">
 <link rel="alternate" hreflang="x-default" href="/en/whitepaper">
@@ -136,6 +152,9 @@ def build(code: str) -> None:
         html_lang=cfg["html_lang"],
         lang_path=cfg["lang_path"],
         title=cfg["title"],
+        description=cfg["description"],
+        og_image=cfg["og_image"],
+        og_locale=cfg["og_locale"],
         nav_links=nav_links,
         other_href=other_href,
         other_label=other_label,
