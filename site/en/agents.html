@@ -49,7 +49,7 @@
 <h2>1. Up front: we do not implement the x402 standard</h2>
 <p>x402's <code>exact</code> scheme never settles a native coin on any chain. Every mechanism we checked settles a token: ASA on Algorand, SPL on Solana, EIP-3009/Permit2 ERC-20 on EVM, Soroban tokens on Stellar, NEP-141 on NEAR, fungible assets on Aptos.</p>
 <p>Avouch keeps the HTTP envelope and settles native ALGO instead. We call it <code>exact-algo</code>, and <strong>it is not compatible with standard x402 clients</strong>: the <code>asset</code> field is <code>"ALGO"</code>, not an ASA id. We state that in the 402 body and here, rather than letting an integrator discover it at runtime.</p>
-<p>Two reasons drove the deviation. Receiving USDC requires the payer to opt in to the ASA (0.1 ALGO locked) and to source USDC first. And mainnet USDC (31566704) has an issuer freeze address configured, so if the app escrow account that pools bonds is frozen, neither refunds nor slashes can execute. Native ALGO has no such external authority.</p>
+<p>Two reasons drove the deviation. Receiving USDC requires the payer to opt in to the ASA (0.1 ALGO locked) and to source USDC first. And mainnet USDC (31566704) has an issuer freeze address configured, so if the app account that pools stakes is frozen, neither refunds nor handover payouts can execute. Native ALGO has no such external authority.</p>
 
 <h2>2. HTTP flow</h2>
 <pre>GET  /api/meta                              -> free: app id, prices, floor, policy
@@ -174,7 +174,7 @@ get(url, {"PAYMENT-SIGNATURE": b64encode(json.dumps(env))})   # 200 + receipt</p
 <table>
 <tr><th>File</th><th>Contents</th></tr>
 <tr><td><code>/llms.txt</code></td><td>agent-facing summary: what this is, the payment scheme, where the docs live</td></tr>
-<tr><td><code>/.well-known/exact-algo.json</code></td><td>scheme spec: envelope keys, transaction rules, error codes, prices, bond peg rule</td></tr>
+<tr><td><code>/.well-known/exact-algo.json</code></td><td>scheme spec: envelope keys, transaction rules, error codes, prices, minimum stake, entry policy</td></tr>
 <tr><td><code>/.well-known/agent.json</code></td><td>service registration: web and MCP endpoints, x402 support flag, trust model (crypto-economic)</td></tr>
 <tr><td>GitHub</td><td><a href="https://github.com/iamswain25/avouch" target="_blank" rel="noopener"><code>iamswain25/avouch</code></a> — contracts, payment verifier, MCP server, localnet e2e</td></tr>
 </table>

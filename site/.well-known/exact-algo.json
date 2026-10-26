@@ -1,6 +1,6 @@
 {
   "scheme": "exact-algo",
-  "status": "v4-slot-auction-localnet-verified",
+  "status": "v4-slot-auction-live-testnet",
   "standard": "NOT x402-compatible: x402 exact settles ASA/SPL/ERC-20 tokens only, this settles native ALGO",
   "version": 2,
   "network": {
@@ -74,6 +74,7 @@
       "board_meta",
       "payment_instructions",
       "post_read",
+      "credit_topup",
       "stake",
       "unstake"
     ]

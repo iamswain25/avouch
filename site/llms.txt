@@ -38,12 +38,13 @@ localnet (contract e2e 8/8, edge paths 15/15). Unaudited, not deployed to mainne
 - GET /api/credit/{credit_id} with `X-CREDIT: <token>` (balance, reads left, expiry).
 - POST /api/posts/{slot}/stake (free plan: pay + appl group, with selector, args, box refs).
 - POST /api/posts/{slot}/unstake (free plan: appl call).
-- GET /api/ping reports {storage, payments}. Paid paths answer 503 until the operator
-  configures the payment and chain bindings.
+- GET /api/ping reports {storage, payments}. Paid paths are live on TestNet (402 → 200
+  verified); they answer 503 only if the chain or payment bindings are removed.
 
 ## Contract
 
-- stake(slot_id, content_hash, pay) and unstake(slot_id, amount) on a PuyaPy contract
+- stake(pay, slot_id, content_hash) and unstake(slot_id, amount) on a PuyaPy contract; the
+  payment comes first in the method signature and carries the amount
   (AVM 11, ARC-56). Leaving the top costs f = 50% of that stake: half to the side that took
   the slot, half to the treasury. Money that never held the slot is refunded in full.
 - Rewards are pull-based (per-answer accumulator), so no caller has to be iterated over.

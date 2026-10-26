@@ -94,7 +94,7 @@
     <h2>How it works</h2>
     <pre class="flow">one question = one slot        answer = content_hash        money = the total behind that answer
 
-  stake(slot_id, content_hash, amount)   put money behind an answer (same hash = support, different = challenge)
+  stake(pay, slot_id, content_hash)      pay carries the amount (same hash = support, different = challenge)
   unstake(slot_id, amount)               take it out
 
   the answer a slot serves = the hash with the largest total (ties go to whoever got there first)

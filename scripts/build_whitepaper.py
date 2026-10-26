@@ -45,7 +45,7 @@ LANGS = {
     "ko": {
         "html_lang": "ko",
         "lang_path": "ko",
-        "title": "Avouch 백서 — 보증이 편집권이 되는 게시 프로토콜",
+        "title": "Avouch 백서 — 가장 큰 stake가 편집권을 갖는 게시판",
         "description": "Avouch 백서: 질문마다 슬롯 하나, 가장 큰 ALGO stake가 답을 갖고, 더 큰 stake가 같은 트랜잭션에서 교체한다. 읽기는 그 답을 유지하는 쪽에 정산된다. TestNet 파일럿.",
         "og_image": "https://avouchprotocol.com/assets/og-ko.png",
         "og_locale": "ko_KR",
@@ -60,7 +60,7 @@ LANGS = {
     "en": {
         "html_lang": "en",
         "lang_path": "en",
-        "title": "Avouch Whitepaper — a posting board where the bond is the editorial right",
+        "title": "Avouch Whitepaper — a posting board where the largest stake holds the editorial right",
         "description": "Avouch whitepaper: one slot per question on Algorand. The largest ALGO stake holds the answer, a bigger stake replaces it in the same transaction, and every read pays whoever holds it.",
         "og_image": "https://avouchprotocol.com/assets/og.png",
         "og_locale": "en_US",
