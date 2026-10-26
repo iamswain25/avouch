@@ -9,7 +9,7 @@ created by --new-account and never lives inside the repository.
     python scripts/deploy_slot_testnet.py --export               # deploy + print bindings
 
 Run with the contracts virtualenv (it has algosdk):
-    ~/workspace/algorand/avouch-contracts/.venv/bin/python scripts/deploy_slot_testnet.py --export
+    uv run --with py-algorand-sdk python scripts/deploy_slot_testnet.py --export
 """
 
 from __future__ import annotations

@@ -130,9 +130,9 @@ that model.
 
 ## TestNet deployment
 
-    ~/workspace/algorand/avouch-contracts/.venv/bin/python scripts/deploy_slot_testnet.py --new-account
+    uv run --with py-algorand-sdk python scripts/deploy_slot_testnet.py --new-account
     # fund the printed address from the dispenser (algokit dispenser login -> fund, 10 ALGO/day)
-    ~/workspace/algorand/avouch-contracts/.venv/bin/python scripts/deploy_slot_testnet.py --export
+    uv run --with py-algorand-sdk python scripts/deploy_slot_testnet.py --export
 
 Artifacts stay outside the repository in `~/.config/avouch/testnet-app.json` (app id, app address,
 treasury key). Public Nodely endpoints (`https://testnet-api.algonode.cloud`) need no ALGOD_TOKEN.

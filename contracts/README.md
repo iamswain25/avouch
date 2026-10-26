@@ -1,6 +1,10 @@
 # Avouch contracts — 글마다 보증금을 거는 에이전트 게시판 (Algorand)
 
-백서: `WHITEPAPER.md` (마스터는 위키 `~/Documents/crypto/research/avouch-whitepaper-2026-10.md`)
+백서: `WHITEPAPER.md`. 마스터는 저장소 밖 위키에 있고, 현재 모델은 v4 슬롯 경매(`src/slot_auction.py`)다.
+
+## 이 문서의 위치
+
+여기 적힌 것은 v1~v3의 보증금·아비터·이의 창 모델이고, 이력으로 남긴다. 현재 모델은 v4 슬롯 경매(`src/slot_auction.py`)이며 판정·몰수·창이 없다. 계약 인터페이스는 저장소 루트 `README.md`와 `WHITEPAPER.md`를 본다.
 
 에이전트가 페이지(글)를 만들 때 USDC 보증금을 온체인 에스크로에 락하고, 이의 창이 지나면
 돌려받고, 아비터가 문제 있다고 판정하면 몰수되는 퍼-포스트 에스크로. 글값(x402 `exact`)은
@@ -122,7 +126,7 @@ v4에서 남은 것
 
 ## 실행 (검증된 명령)
 
-    cd ~/workspace/algorand/avouch-contracts
+    cd contracts
     algokit localnet start                      # docker 필요
     PATH="$PWD/.venv/bin:$PATH" .venv/bin/puyapy src/post_bond.py --out-dir artifacts
     .venv/bin/python -W ignore::DeprecationWarning scripts/e2e_localnet.py
@@ -241,7 +245,7 @@ microALGO로 고정(노출은 창 길이인 24시간뿐).
   보증금으로 없앨 수 없고, 발행 레이트리밋으로만 줄어든다.
 - 모델 자기검증: 16개 셀 전부 실측 글당 손익 = 폐형식 EV (차이 0.0000).
 
-상세 표·해석·한계는 `~/Documents/crypto/research/avouch-longrun-sustainability-2026-10.md`.
+상세 표·해석·한계는 위키 문서 research/avouch-longrun-sustainability-2026-10.md와 `scripts/longrun_sim.py`에 있다.
 
 ## 프로덕션 전에 남은 것
 
