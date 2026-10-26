@@ -1,0 +1,41 @@
+.gitignore
+  s_a278a0da672fb8::t_e14be27edfbc80 9-10
+Makefile
+  s_a278a0da672fb8::t_275f663e2e0aed 1-33
+README.md
+  s_fdbc8a34e34a9d::t_c073c8f19872f4 3-4,6-11,13-73,86
+scripts/demo-stop.sh
+  s_a278a0da672fb8::t_7769d76d5652b4 1-25
+scripts/demo.sh
+  s_a278a0da672fb8::t_e27c89b431acff 1-79
+scripts/seed_localnet.py
+  s_fdbc8a34e34a9d::t_64f68f0ba0aa65 1-119
+site/en/index.html
+  s_fdbc8a34e34a9d::t_1e1d462ab9e6bd 59-60
+site/ko/index.html
+  s_fdbc8a34e34a9d::t_940d200a96869b 58-60
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ae87272335c345efb7f4e810ca70136fadc2fbfa",
+  "prompts": {},
+  "sessions": {
+    "s_a278a0da672fb8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a15ebb-0ceb-7052-9733-005c6e1d6f1e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "swain <iamswain@hotmail.com>"
+    },
+    "s_fdbc8a34e34a9d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a162f1-5d7c-7261-b82e-b09331120174",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "swain <iamswain@hotmail.com>"
+    }
+  }
+}
