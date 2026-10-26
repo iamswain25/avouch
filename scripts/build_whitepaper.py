@@ -49,6 +49,7 @@ LANGS = {
         "description": "Avouch 백서: 질문마다 슬롯 하나, 가장 큰 ALGO stake가 답을 갖고, 더 큰 stake가 같은 트랜잭션에서 교체한다. 읽기는 그 답을 유지하는 쪽에 정산된다. TestNet 파일럿.",
         "og_image": "https://avouchprotocol.com/assets/og-ko.png",
         "og_locale": "ko_KR",
+        "og_alt": "Avouch 백서 — 질문 하나에 답 하나, 가장 큰 ALGO stake가 슬롯을 갖는다.",
         "src": ROOT / "content" / "ko" / "whitepaper.md",
         "out": ROOT / "site" / "ko" / "whitepaper.html",
         "nav": {"./": "홈", "#how": "작동", "#econ": "경제", "#status": "상태"},
@@ -63,6 +64,7 @@ LANGS = {
         "description": "Avouch whitepaper: one slot per question on Algorand. The largest ALGO stake holds the answer, a bigger stake replaces it in the same transaction, and every read pays whoever holds it.",
         "og_image": "https://avouchprotocol.com/assets/og.png",
         "og_locale": "en_US",
+        "og_alt": "Avouch whitepaper — one answer per question, the largest ALGO stake holds the slot.",
         "src": ROOT / "content" / "en" / "whitepaper.md",
         "out": ROOT / "site" / "en" / "whitepaper.html",
         "nav": {"./": "Home", "#how": "How", "#econ": "Economics", "#status": "Status"},
@@ -81,6 +83,7 @@ PAGE = """<!doctype html>
 <meta name="description" content="{description}">
 <link rel="canonical" href="https://avouchprotocol.com/{lang_path}/whitepaper">
 <meta property="og:type" content="article">
+<meta property="og:url" content="https://avouchprotocol.com/{lang_path}/whitepaper">
 <meta property="og:site_name" content="Avouch">
 <meta property="og:locale" content="{og_locale}">
 <meta property="og:title" content="{title}">
@@ -88,6 +91,7 @@ PAGE = """<!doctype html>
 <meta property="og:image" content="{og_image}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="{og_alt}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="{og_image}">
 <link rel="alternate" hreflang="ko" href="/ko/whitepaper">
@@ -155,6 +159,7 @@ def build(code: str) -> None:
         description=cfg["description"],
         og_image=cfg["og_image"],
         og_locale=cfg["og_locale"],
+        og_alt=cfg["og_alt"],
         nav_links=nav_links,
         other_href=other_href,
         other_label=other_label,
