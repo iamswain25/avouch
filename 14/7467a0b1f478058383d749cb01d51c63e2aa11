@@ -1,0 +1,14 @@
+functions/_lib/algo.js
+  h_247fbbde292880 180-188,208-210,218
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "147467a0b1f478058383d749cb01d51c63e2aa11",
+  "prompts": {},
+  "humans": {
+    "h_247fbbde292880": {
+      "author": "swain <iamswain@hotmail.com>"
+    }
+  }
+}
