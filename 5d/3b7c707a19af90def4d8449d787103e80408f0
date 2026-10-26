@@ -1,0 +1,18 @@
+README.md
+  h_247fbbde292880 133,135
+contracts/README.md
+  h_247fbbde292880 3-7,129,248
+scripts/deploy_slot_testnet.py
+  h_247fbbde292880 12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5d3b7c707a19af90def4d8449d787103e80408f0",
+  "prompts": {},
+  "humans": {
+    "h_247fbbde292880": {
+      "author": "swain <iamswain@hotmail.com>"
+    }
+  }
+}
