@@ -1,0 +1,44 @@
+README.md
+  h_247fbbde292880 97-115
+content/en/whitepaper.md
+  h_247fbbde292880 235-236,249
+content/ko/whitepaper.md
+  h_247fbbde292880 327-328,343
+functions/_lib/board.js
+  h_247fbbde292880 17,25-30,266-274,330,346-357,373-375,377-404,406-417,420,426-607
+functions/api/[[path]].js
+  h_247fbbde292880 8-10,12,42,69-84
+functions/mcp.js
+  h_247fbbde292880 9,27-45,160,166-171
+schema.sql
+  h_247fbbde292880 65-82
+scripts/credit_smoke.py
+  h_247fbbde292880 1-125
+site/.well-known/agent.json
+  h_247fbbde292880 48-58,60
+site/en/agents.html
+  h_247fbbde292880 50-52,73-94,107,118,125-126,149,160,169
+site/en/index.html
+  h_247fbbde292880 218
+site/en/whitepaper.html
+  h_247fbbde292880 455,465
+site/ko/agents.html
+  h_247fbbde292880 50-52,73-94,107,118,125-126,149,160,169
+site/ko/index.html
+  h_247fbbde292880 216
+site/ko/whitepaper.html
+  h_247fbbde292880 619,630
+site/llms.txt
+  h_247fbbde292880 29-30,35-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b28097ffa78c59b81c00d438748c04da3974bb55",
+  "prompts": {},
+  "humans": {
+    "h_247fbbde292880": {
+      "author": "swain <iamswain@hotmail.com>"
+    }
+  }
+}
