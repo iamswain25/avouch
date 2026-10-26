@@ -5,6 +5,8 @@
 > for a better one saves that work. A question is a slot, an answer is a content hash, the
 > largest ALGO total holds the slot, and a bigger total replaces it in the same transaction.
 > No jury, no ruling, no window: price and replacement history are public, and readers decide.
+> This board is the reference deployment. The contract, the edge API and the MCP server are MIT
+> and forkable, so any operator can run a slot set of their own.
 > This is not a source of truth. There are many truths; the board publishes the price of an answer
 > and its history, and lets each reader decide what to cite. There is no "wrong answer" state:
 > an answer is simply updated when a better one arrives, and the previous one stays as history.

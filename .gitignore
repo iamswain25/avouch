@@ -6,3 +6,5 @@ __pycache__/
 # local dev state
 .wrangler/
 node_modules/
+.demo-env
+.demo-edge.pid
