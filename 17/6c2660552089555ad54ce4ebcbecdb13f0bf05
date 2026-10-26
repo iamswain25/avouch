@@ -1,0 +1,20 @@
+README.md
+  h_247fbbde292880 115
+functions/_lib/algo.js
+  h_247fbbde292880 26,273-274
+scripts/refund_credit.py
+  h_247fbbde292880 1-137
+scripts/settle_reads.py
+  h_247fbbde292880 32,42-53,64
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "176c2660552089555ad54ce4ebcbecdb13f0bf05",
+  "prompts": {},
+  "humans": {
+    "h_247fbbde292880": {
+      "author": "swain <iamswain@hotmail.com>"
+    }
+  }
+}
