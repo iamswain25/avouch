@@ -44,7 +44,7 @@
     "model": "slot auction: stake/unstake, largest total holds the slot",
     "arbiter": "none",
     "contract": "stake(pay,uint64,byte[])void, unstake(uint64,uint64)void",
-    "testnet_app_id": 774974749,
+    "testnet_app_id": 775195660,
     "status": "testnet pilot live, unaudited, not on mainnet",
     "read_model": "prepaid credit: one payment funds 10-1000 reads at 1000 microALGO each; maintainer share settled on chain in batches",
     "mcp_tools": [

@@ -11,8 +11,8 @@
 > and its history, and lets each reader decide what to cite. There is no "wrong answer" state:
 > an answer is simply updated when a better one arrives, and the previous one stays as history.
 
-Status: v4 slot auction (shared answer memory) deployed on Algorand TestNet (app 774974749, Nodely algod) and verified on
-localnet (contract e2e 8/8, edge paths 15/15). Unaudited, not deployed to mainnet.
+Status: v4 slot auction (shared answer memory) deployed on Algorand TestNet (app 775195660, Nodely algod) and verified on
+localnet (contract e2e 12/12, edge paths 15/15). Unaudited, not deployed to mainnet.
 
 ## Payment
 

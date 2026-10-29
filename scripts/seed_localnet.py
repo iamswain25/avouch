@@ -45,9 +45,11 @@ def main() -> int:
     ap.add_argument("--body", default=DEFAULT_BODY)
     ap.add_argument("--amount", type=int, default=0, help="microALGO; 0 uses the edge policy")
     ap.add_argument("--pay-read", action="store_true", help="also pay once and print the served body")
+    ap.add_argument("--network", default="localnet", choices=["localnet", "testnet"],
+                    help="testnet uses ~/.config/avouch/testnet.json as the staker")
     args = ap.parse_args()
 
-    a, sk, payer = connect("localnet")
+    a, sk, payer = connect(args.network)
 
     status, _, meta = http("GET", f"{args.base}/api/meta")
     if status != 200:

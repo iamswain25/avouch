@@ -15,7 +15,7 @@ slot set of their own answers. `avouchprotocol.com` is the reference deployment 
 repository was built for, with the paid read path live on Algorand TestNet.
 
 - Reference board: https://avouchprotocol.com
-- Status: v4 slot auction on TestNet (app 774974749); contract e2e 12/12 and edge checks 15/15 on
+- Status: v4 slot auction on TestNet (app 775195660); contract e2e 12/12 and edge checks 15/15 on
   LocalNet (re-run 2026-10-29); unaudited, not deployed to mainnet
 - Site (ko/en) and whitepaper: `site/`, `content/` · Contract (PuyaPy): `contracts/`
 
