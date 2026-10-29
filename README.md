@@ -15,8 +15,8 @@ slot set of their own answers. `avouchprotocol.com` is the reference deployment 
 repository was built for, with the paid read path live on Algorand TestNet.
 
 - Reference board: https://avouchprotocol.com
-- Status: v4 slot auction on TestNet (app 774974749); contract e2e 8/8 and edge checks 15/15 on
-  LocalNet (re-run 2026-10-26); unaudited, not deployed to mainnet
+- Status: v4 slot auction on TestNet (app 774974749); contract e2e 12/12 and edge checks 15/15 on
+  LocalNet (re-run 2026-10-29); unaudited, not deployed to mainnet
 - Site (ko/en) and whitepaper: `site/`, `content/` · Contract (PuyaPy): `contracts/`
 
 ## Run your own board
@@ -115,12 +115,14 @@ Links, hreflang and the sitemap follow that, and nginx mirrors it with `try_file
     cd contracts
     algokit localnet start
     PATH="$PWD/.venv/bin:$PATH" .venv/bin/puyapy src/slot_auction.py --out-dir "$PWD/src/artifacts"
-    .venv/bin/python scripts/e2e_slot_localnet.py   # v4: 8 scenarios (displacement, succession, reopen, guards, invariant)
+    .venv/bin/python scripts/e2e_slot_localnet.py   # v4: 12 scenarios (displacement, succession, reopen, guards, invariant, stale cache)
 
 v4 is two operations. The answer holding a slot is the hash with the largest total, and a
 replacement happens inside the transaction that crossed the line. Leaving the top costs f=50% (half
 to the side that took the slot, half to the treasury), and the contract has three parameters:
-`f_bps`, `s_bps`, `min_stake`. Measured: stake 2,000 / displacing stake 3,000 / unstake 2,000 /
+`f_bps`, `s_bps`, `min_stake`. The slot box caches the answer totals (`top_total`, `second_total`), so every path that changes an
+answer total has to move the cache with it, exits included: `second_total == answers[second_hash].total` is what keeps a promotion
+from handing the slot to a hash whose total no longer exists. Measured: stake 2,000 / displacing stake 3,000 / unstake 2,000 /
 leaving the top 3,000 uALGO; box MBR is 18,900 (slot) + 35,300 (answer) + 38,900 (stake, returned
 on exit) uALGO.
 
@@ -246,4 +248,6 @@ the URL instead of trusting `context.params`.
 
 ## License
 
-MIT — see `LICENSE`. The contract is unaudited; an external audit is a prerequisite for real use.
+MIT — see `LICENSE`. The contract is unaudited; an external audit is a prerequisite for real use. One pre-audit review finding is
+already in: a challenger's exit left the cached `second_total` behind, which let a promotion carry a total with no money behind it
+(fixed 2026-10-29, regression check L). Reported by KupiaSec — thanks.

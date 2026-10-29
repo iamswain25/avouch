@@ -11,6 +11,8 @@
   F reopen      an emptied slot needs min_stake again; below it the stake is refused
   G guards      staking into a displaced hash, over-unstaking, and a short hash are refused
   H invariant   escrow == outstanding stakes (dust from integer division only)
+  L stale cache a challenger that leaves clears the cached second total, so the next stake is
+                  not charged a fee on money nobody deposited
 
 Run: .venv/bin/python scripts/e2e_slot_localnet.py
 """
@@ -406,6 +408,33 @@ def main() -> int:
     tiny = fails(lambda: group_reward(a, dispenser, app_id, sid2, 1))
     results.append(("K guards: reward on an empty slot and a dust reward are refused",
                     empty_slot and tiny, f"empty={empty_slot} dust={tiny}"))
+
+    # ---------------- L: a challenger that leaves takes the cached second total with it
+    # (v4 regression: the slot box caches answer totals, so an exit from the challenger must
+    #  move second_total too. Left stale, the next top exit promotes a hash whose total is 0
+    #  and the following displacement charges a fee on money nobody deposited.)
+    sid3 = 3
+    b3 = lambda h, who: [slot_key(sid3), answer_key(sid3, h), stake_key(sid3, who.address)]
+    stake(a, alice, app_id, sid3, H1, ONE, boxes=b3(H1, alice))
+    stake(a, bob, app_id, sid3, H2, 900_000, boxes=b3(H2, bob))
+    slot = slot_state(a, dispenser, app_id, sid3)
+    second_seen = bval(slot[IDX_SECOND_HASH]) == H2 and int(slot[IDX_SECOND_TOTAL]) == 900_000
+    unstake(a, bob, app_id, sid3, 900_000, boxes=b3(H2, bob))
+    slot = slot_state(a, dispenser, app_id, sid3)
+    second_cleared = bval(slot[IDX_SECOND_HASH]) == b"" and int(slot[IDX_SECOND_TOTAL]) == 0
+    unstake(a, alice, app_id, sid3, ONE, boxes=b3(H1, alice))
+    slot = slot_state(a, dispenser, app_id, sid3)
+    emptied = bval(slot[IDX_TOP_HASH]) == b"" and int(slot[IDX_TOP_TOTAL]) == 0
+    epoch_after_exit = int(slot[IDX_EPOCH])
+    t_before = bal(a, treasury.address)
+    stake(a, bob, app_id, sid3, H3, 950_000, boxes=b3(H3, bob))
+    slot = slot_state(a, dispenser, app_id, sid3)
+    no_phantom = (bal(a, treasury.address) == t_before and bval(slot[IDX_TOP_HASH]) == H3
+                  and int(slot[IDX_TOP_TOTAL]) == 950_000 and int(slot[IDX_EPOCH]) == epoch_after_exit)
+    results.append(("L stale second: a leaving challenger clears the cached total, so the next "
+                    "stake pays nothing for it", second_seen and second_cleared and emptied and no_phantom,
+                    f"second_cleared={second_cleared} emptied={emptied} treasury+={bal(a, treasury.address) - t_before} "
+                    f"top={int(slot[IDX_TOP_TOTAL])}"))
 
     print()
     ok_all = True

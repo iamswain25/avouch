@@ -4,17 +4,17 @@
 // algopy.arc4.ARC4Contract.approval_program() -> uint64:
 main:
     intcblock 0 8 2 1 1000000 10000 128
-    bytecblock "escrowed" "a" "treasury" "f_bps" "min_stake" 0x00 "k" "s" 0x0000 0x151f7c75 "s_bps" 0x0012
+    bytecblock "escrowed" "a" 0x0000 "treasury" "f_bps" "min_stake" 0x00 "k" "s" 0x151f7c75 "s_bps" 0x0012
     txn ApplicationID
     bnz main_after_if_else@2
     // src/slot_auction.py:97
     // self.treasury = GlobalState(arc4.Address())
-    bytec_2 // "treasury"
+    bytec_3 // "treasury"
     global ZeroAddress
     app_global_put
     // src/slot_auction.py:98
     // self.f_bps = GlobalState(UInt64(0))
-    bytec_3 // "f_bps"
+    bytec 4 // "f_bps"
     intc_0 // 0
     app_global_put
     // src/slot_auction.py:99
@@ -24,7 +24,7 @@ main:
     app_global_put
     // src/slot_auction.py:100
     // self.min_stake = GlobalState(UInt64(0))
-    bytec 4 // "min_stake"
+    bytec 5 // "min_stake"
     intc_0 // 0
     app_global_put
     // src/slot_auction.py:101
@@ -116,12 +116,12 @@ create_bool_merge@5:
     assert // min_stake
     // src/slot_auction.py:119
     // self.treasury.value = treasury
-    bytec_2 // "treasury"
+    bytec_3 // "treasury"
     uncover 4
     app_global_put
     // src/slot_auction.py:120
     // self.f_bps.value = f_bps
-    bytec_3 // "f_bps"
+    bytec 4 // "f_bps"
     uncover 3
     app_global_put
     // src/slot_auction.py:121
@@ -131,7 +131,7 @@ create_bool_merge@5:
     app_global_put
     // src/slot_auction.py:122
     // self.min_stake.value = min_stake
-    bytec 4 // "min_stake"
+    bytec 5 // "min_stake"
     swap
     app_global_put
     // src/slot_auction.py:108
@@ -266,7 +266,7 @@ stake:
     // assert not ans.settled.native, "hash displaced"
     intc 6 // 128
     getbit
-    bytec 5 // 0x00
+    bytec 6 // 0x00
     intc_0 // 0
     uncover 2
     setbit
@@ -288,7 +288,7 @@ stake_after_if_else@4:
     swap
     // src/slot_auction.py:162
     // if skey in self.stakes:
-    bytec 6 // "k"
+    bytec 7 // "k"
     dig 7
     concat
     dup
@@ -342,7 +342,7 @@ stake_after_if_else@6:
     box_put
     // src/slot_auction.py:175
     // if slot_id not in self.slots:
-    bytec 7 // "s"
+    bytec 8 // "s"
     dig 9
     concat
     dup
@@ -357,7 +357,7 @@ stake_after_if_else@6:
     // src/slot_auction.py:176
     // assert amount >= self.min_stake.value, "min stake"
     intc_0 // 0
-    bytec 4 // "min_stake"
+    bytec 5 // "min_stake"
     app_global_get_ex
     assert // check self.min_stake exists
     dig 2
@@ -397,7 +397,7 @@ stake_after_if_else@6:
     concat
     // src/slot_auction.py:180
     // second_hash=arc4.DynamicBytes(),
-    bytec 8 // 0x0000
+    bytec_2 // 0x0000
     // src/slot_auction.py:177-183
     // self.slots[slot_id] = Slot(
     //     top_hash=content_hash.copy(),
@@ -458,7 +458,7 @@ stake_else_body@8:
     // # empty slot: any accumulated hash can take it, if it clears the floor
     // assert total_after >= self.min_stake.value, "min stake"
     intc_0 // 0
-    bytec 4 // "min_stake"
+    bytec 5 // "min_stake"
     app_global_get_ex
     assert // check self.min_stake exists
     uncover 3
@@ -564,7 +564,7 @@ stake_else_body@12:
     // src/slot_auction.py:213
     // fee = old_total * self.f_bps.value // UInt64(BPS)
     intc_0 // 0
-    bytec_3 // "f_bps"
+    bytec 4 // "f_bps"
     app_global_get_ex
     assert // check self.f_bps exists
     dig 1
@@ -679,7 +679,7 @@ stake_else_body@12:
     // src/slot_auction.py:231
     // self._send(self.treasury.value.native, to_treasury)
     intc_0 // 0
-    bytec_2 // "treasury"
+    bytec_3 // "treasury"
     app_global_get_ex
     assert // check self.treasury exists
     swap
@@ -735,7 +735,7 @@ stake_after_if_else@23:
     intc_0 // 0
     uncover 2
     extract3
-    bytec 8 // 0x0000
+    bytec_2 // 0x0000
     concat
     // src/slot_auction.py:236
     // slot.second_total = arc4.UInt64(0)
@@ -842,9 +842,9 @@ stake_else_body@3:
 // slot_auction.SlotAuction.unstake[routing]() -> void:
 unstake:
     intc_0 // 0
-    dupn 5
+    dupn 3
     pushbytes ""
-    dupn 2
+    dupn 3
     // src/slot_auction.py:242
     // @arc4.abimethod
     txna ApplicationArgs 1
@@ -875,7 +875,7 @@ unstake:
     concat
     // src/slot_auction.py:246
     // assert skey in self.stakes, "no stake"
-    bytec 6 // "k"
+    bytec 7 // "k"
     swap
     concat
     dup
@@ -918,10 +918,10 @@ unstake_bool_merge@5:
     swap
     box_extract
     dup
-    bury 13
+    bury 12
     extract 2 0
     dup
-    bury 12
+    bury 11
     // src/slot_auction.py:251
     // akey = op.itob(sid) + h
     uncover 2
@@ -933,22 +933,20 @@ unstake_bool_merge@5:
     swap
     concat
     dup
-    bury 10
+    bury 9
     box_get
     swap
     cover 2
     assert // check self.answers entry exists
     // src/slot_auction.py:253
     // slot = self.slots[slot_id].copy()
-    bytec 7 // "s"
+    bytec 8 // "s"
     uncover 3
     concat
-    dup
-    bury 9
-    dup
+    dupn 2
     box_get
     swap
-    bury 9
+    cover 2
     assert // check self.slots entry exists
     // src/slot_auction.py:253-254
     // slot = self.slots[slot_id].copy()
@@ -960,12 +958,12 @@ unstake_bool_merge@5:
     // on_top = slot.top_total.native > UInt64(0) and slot.top_hash.native == h
     btoi
     dup
-    bury 6
+    bury 9
     bz unstake_bool_false@8
     // src/slot_auction.py:253-254
     // slot = self.slots[slot_id].copy()
     // on_top = slot.top_total.native > UInt64(0) and slot.top_hash.native == h
-    dig 7
+    dig 1
     dup
     pushint 28
     intc_2 // 2
@@ -979,7 +977,7 @@ unstake_bool_merge@5:
     // src/slot_auction.py:254
     // on_top = slot.top_total.native > UInt64(0) and slot.top_hash.native == h
     extract 2 0
-    dig 10
+    dig 11
     ==
     bz unstake_bool_false@8
     intc_3 // 1
@@ -987,59 +985,59 @@ unstake_bool_merge@5:
 unstake_bool_merge@9:
     // src/slot_auction.py:256
     // if ans.settled.native:
-    dig 2
+    dig 4
     intc 6 // 128
     getbit
-    bytec 5 // 0x00
+    bytec 6 // 0x00
     intc_0 // 0
     uncover 2
     setbit
     dup
-    bury 14
+    bury 15
     intc_0 // 0
     getbit
     bz unstake_else_body@11
     // src/slot_auction.py:257-258
     // # already lost: the fee was taken at displacement, this is the refund pool only
     // refund = amount * ans.refund_pool.native // ans.settle_total.native
-    dig 2
+    dig 4
     dup
     pushint 33
     extract_uint64
-    dig 5
+    dig 7
     *
     dig 1
     pushint 25
     extract_uint64
     /
-    cover 2
+    cover 5
     // src/slot_auction.py:259
     // fee = UInt64(0)
     intc_0 // 0
-    bury 9
+    bury 12
     // src/slot_auction.py:260
     // acc_now = ans.acc_at_settle.native
     pushint 17
     extract_uint64
-    cover 2
+    cover 3
 
 unstake_after_if_else@15:
     // src/slot_auction.py:272
     // owed = st.amount.native * acc_now // UInt64(ACC)
-    dig 3
+    dig 4
     dup
     intc_2 // 2
     intc_1 // 8
     box_extract // on error: index out of bounds
     btoi
     dup
-    bury 9
-    dig 4
+    bury 12
+    dig 5
     *
     intc 4 // 1000000
     /
     dup
-    cover 3
+    cover 5
     // src/slot_auction.py:273
     // claim = owed - st.debt.native if owed > st.debt.native else UInt64(0)
     swap
@@ -1051,10 +1049,10 @@ unstake_after_if_else@15:
     cover 2
     >
     bz unstake_ternary_false@17
-    uncover 2
+    uncover 4
     swap
     -
-    cover 4
+    cover 7
 
 unstake_ternary_merge@18:
     // src/slot_auction.py:275
@@ -1063,10 +1061,10 @@ unstake_ternary_merge@18:
     bytec_0 // "escrowed"
     app_global_get_ex
     assert // check self.escrowed exists
-    dig 2
-    dig 11
-    +
     dig 6
+    dig 14
+    +
+    dig 9
     +
     swap
     dig 1
@@ -1079,11 +1077,11 @@ unstake_ternary_merge@18:
     callsub _check_solvency
     // src/slot_auction.py:279
     // total=arc4.UInt64(ans.total.native - amount),
-    uncover 5
+    uncover 6
     dup
     intc_0 // 0
     extract_uint64
-    dig 7
+    dig 9
     dup
     cover 3
     -
@@ -1116,7 +1114,7 @@ unstake_ternary_merge@18:
     uncover 4
     uncover 4
     concat
-    dig 19
+    dig 20
     concat
     uncover 3
     concat
@@ -1124,12 +1122,12 @@ unstake_ternary_merge@18:
     concat
     swap
     concat
-    dig 13
+    dig 14
     swap
     box_put
     // src/slot_auction.py:287
     // remaining = st.amount.native - amount
-    dig 7
+    dig 10
     swap
     -
     dup
@@ -1137,44 +1135,40 @@ unstake_ternary_merge@18:
     // if remaining == UInt64(0):
     bnz unstake_else_body@20
     pop
-    uncover 2
+    uncover 3
     pop
     // src/slot_auction.py:289
     // del self.stakes[skey]
-    uncover 2
+    uncover 3
     box_del
     pop
 
 unstake_after_if_else@21:
     // src/slot_auction.py:298
     // if on_top:
-    bz unstake_after_if_else@28
+    bz unstake_else_body@28
     // src/slot_auction.py:299
     // slot.top_total = arc4.UInt64(slot.top_total.native - amount)
-    dig 4
-    dig 3
+    dig 7
+    dig 5
     -
     itob
-    dig 7
-    swap
     replace2 2
     dup
-    bury 8
     // src/slot_auction.py:300
     // if slot.top_total.native == UInt64(0):
     intc_2 // 2
     extract_uint64
-    bnz unstake_after_if_else@27
+    bnz unstake_after_if_else@35
     // src/slot_auction.py:301-302
     // # the top walked away: promote the best known challenger, or leave it empty
     // if slot.second_total.native > UInt64(0):
-    dig 6
+    dup
     pushint 12
     extract_uint64
     bz unstake_else_body@25
     // src/slot_auction.py:303
     // slot.top_hash = slot.second_hash.copy()
-    dig 6
     dup
     pushint 10
     extract_uint16
@@ -1212,21 +1206,20 @@ unstake_after_if_else@21:
     dup
     extract 12 8
     replace2 2
-    bury 7
 
 unstake_after_if_else@26:
     // src/slot_auction.py:308
     // slot.second_hash = arc4.DynamicBytes()
     intc_0 // 0
     itob
-    dig 7
+    swap
     dup
     pushint 10
     extract_uint16
     intc_0 // 0
     swap
     extract3
-    bytec 8 // 0x0000
+    bytec_2 // 0x0000
     concat
     // src/slot_auction.py:309
     // slot.second_total = arc4.UInt64(0)
@@ -1241,40 +1234,37 @@ unstake_after_if_else@26:
     +
     itob
     replace2 20
-    bury 7
 
-unstake_after_if_else@27:
-    // src/slot_auction.py:311
+unstake_after_if_else@35:
+    // src/slot_auction.py:320
     // self.slots[slot_id] = slot.copy()
-    dig 7
+    swap
     dup
     box_del
     pop
-    dig 7
+    swap
     box_put
-
-unstake_after_if_else@28:
-    // src/slot_auction.py:313
+    // src/slot_auction.py:322
     // self._send(Txn.sender, refund + claim)
     txn Sender
     swap
     uncover 2
     +
     callsub _send
-    // src/slot_auction.py:314
+    // src/slot_auction.py:323
     // if fee > UInt64(0):
-    dig 3
-    bz unstake_after_if_else@30
-    // src/slot_auction.py:315
+    dig 4
+    bz unstake_after_if_else@37
+    // src/slot_auction.py:324
     // self._send(self.treasury.value.native, fee)
     intc_0 // 0
-    bytec_2 // "treasury"
+    bytec_3 // "treasury"
     app_global_get_ex
     assert // check self.treasury exists
-    dig 4
+    dig 5
     callsub _send
 
-unstake_after_if_else@30:
+unstake_after_if_else@37:
     // src/slot_auction.py:242
     // @arc4.abimethod
     intc_3 // 1
@@ -1285,7 +1275,7 @@ unstake_else_body@25:
     // slot.top_hash = arc4.DynamicBytes()
     intc_0 // 0
     itob
-    dig 7
+    swap
     dup
     intc_0 // 0
     extract_uint16
@@ -1293,7 +1283,7 @@ unstake_else_body@25:
     intc_0 // 0
     dig 2
     extract3
-    bytec 8 // 0x0000
+    bytec_2 // 0x0000
     concat
     dig 2
     pushint 10
@@ -1322,8 +1312,73 @@ unstake_else_body@25:
     // slot.top_total = arc4.UInt64(0)
     swap
     replace2 2
-    bury 7
     b unstake_after_if_else@26
+
+unstake_else_body@28:
+    // src/slot_auction.py:311
+    // elif slot.second_total.native > UInt64(0) and slot.second_hash.native == h:
+    dig 1
+    pushint 12
+    intc_1 // 8
+    box_extract // on error: index out of bounds
+    btoi
+    dup
+    bury 7
+    bz unstake_after_if_else@35
+    dig 1
+    dup
+    pushint 10
+    intc_2 // 2
+    box_extract
+    btoi
+    dup2
+    intc_2 // 2
+    box_extract
+    btoi
+    intc_2 // 2
+    +
+    box_extract
+    extract 2 0
+    dig 11
+    ==
+    bz unstake_after_if_else@35
+    // src/slot_auction.py:312-315
+    // # leaving the challenger has to move the cached total with it: the slot box is the
+    // # only memory of who is next, and a total left behind here is later promoted as a
+    // # top that no answer backs, so the next displacement charges a fee on nothing
+    // if amount >= slot.second_total.native:
+    dig 4
+    dig 6
+    >=
+    bz unstake_else_body@32
+    // src/slot_auction.py:316
+    // slot.second_hash = arc4.DynamicBytes()
+    intc_0 // 0
+    itob
+    swap
+    dup
+    pushint 10
+    extract_uint16
+    intc_0 // 0
+    swap
+    extract3
+    bytec_2 // 0x0000
+    concat
+    // src/slot_auction.py:317
+    // slot.second_total = arc4.UInt64(0)
+    swap
+    replace2 12
+    b unstake_after_if_else@35
+
+unstake_else_body@32:
+    // src/slot_auction.py:319
+    // slot.second_total = arc4.UInt64(slot.second_total.native - amount)
+    dig 5
+    dig 5
+    -
+    itob
+    replace2 12
+    b unstake_after_if_else@35
 
 unstake_else_body@20:
     // src/slot_auction.py:294
@@ -1333,7 +1388,7 @@ unstake_else_body@20:
     // src/slot_auction.py:295
     // debt=arc4.UInt64(remaining * acc_now // UInt64(ACC)),
     swap
-    uncover 4
+    uncover 5
     *
     intc 4 // 1000000
     /
@@ -1350,9 +1405,9 @@ unstake_else_body@20:
     concat
     swap
     concat
-    dig 13
+    dig 14
     concat
-    uncover 3
+    uncover 4
     dup
     box_del
     pop
@@ -1362,11 +1417,12 @@ unstake_else_body@20:
 
 unstake_ternary_false@17:
     pop
-    bury 1
+    uncover 3
+    pop
     // src/slot_auction.py:273
     // claim = owed - st.debt.native if owed > st.debt.native else UInt64(0)
     intc_0 // 0
-    cover 4
+    cover 7
     b unstake_ternary_merge@18
 
 unstake_else_body@11:
@@ -1378,42 +1434,42 @@ unstake_else_body@11:
     // # leaving the top costs f, whether or not anyone pushed you
     // fee = amount * self.f_bps.value // UInt64(BPS)
     intc_0 // 0
-    bytec_3 // "f_bps"
+    bytec 4 // "f_bps"
     app_global_get_ex
     assert // check self.f_bps exists
-    dig 4
+    dig 6
     dup
     uncover 2
     *
     intc 5 // 10000
     /
     dup
-    bury 9
+    bury 12
     // src/slot_auction.py:264
     // refund = amount - fee
     -
-    swap
+    cover 4
     // src/slot_auction.py:265
     // acc_now = ans.acc.native
-    dig 3
+    dig 5
     intc_1 // 8
     extract_uint64
-    cover 2
+    cover 3
     b unstake_after_if_else@15
 
 unstake_else_body@13:
     // src/slot_auction.py:269
     // fee = UInt64(0)
     intc_0 // 0
-    bury 7
+    bury 10
     // src/slot_auction.py:270
     // acc_now = ans.acc.native
-    dig 2
+    dig 4
     intc_1 // 8
     extract_uint64
-    swap
-    dig 4
-    swap
+    cover 3
+    dig 6
+    cover 5
     b unstake_after_if_else@15
 
 unstake_bool_false@8:
@@ -1427,7 +1483,7 @@ unstake_bool_false@4:
 
 // slot_auction.SlotAuction.reward[routing]() -> void:
 reward:
-    // src/slot_auction.py:319
+    // src/slot_auction.py:328
     // @arc4.abimethod
     txn GroupIndex
     intc_3 // 1
@@ -1443,61 +1499,61 @@ reward:
     intc_1 // 8
     ==
     assert // invalid number of bytes for arc4.uint64
-    // src/slot_auction.py:327
+    // src/slot_auction.py:336
     // assert pay.sender == Txn.sender, "pay sender"
     dig 1
     gtxns Sender
     txn Sender
     ==
     assert // pay sender
-    // src/slot_auction.py:328
+    // src/slot_auction.py:337
     // assert pay.receiver == Global.current_application_address, "pay receiver"
     dig 1
     gtxns Receiver
     global CurrentApplicationAddress
     ==
     assert // pay receiver
-    // src/slot_auction.py:329
+    // src/slot_auction.py:338
     // assert pay.rekey_to == Global.zero_address, "rekey"
     dig 1
     gtxns RekeyTo
     global ZeroAddress
     ==
     assert // rekey
-    // src/slot_auction.py:330
+    // src/slot_auction.py:339
     // assert pay.close_remainder_to == Global.zero_address, "close"
     dig 1
     gtxns CloseRemainderTo
     global ZeroAddress
     ==
     assert // close
-    // src/slot_auction.py:331
+    // src/slot_auction.py:340
     // assert pay.amount > UInt64(0), "amount"
     swap
     gtxns Amount
     dup
     assert // amount
-    // src/slot_auction.py:332
+    // src/slot_auction.py:341
     // assert slot_id in self.slots, "no slot"
-    bytec 7 // "s"
+    bytec 8 // "s"
     dig 2
     concat
     dup
     box_len
     bury 1
     assert // no slot
-    // src/slot_auction.py:334-335
+    // src/slot_auction.py:343-344
     // slot = self.slots[slot_id].copy()
     // assert slot.top_total.native > UInt64(0), "slot empty"
     dup
     intc_2 // 2
     intc_1 // 8
     box_extract // on error: index out of bounds
-    // src/slot_auction.py:335
+    // src/slot_auction.py:344
     // assert slot.top_total.native > UInt64(0), "slot empty"
     btoi
     assert // slot empty
-    // src/slot_auction.py:336
+    // src/slot_auction.py:345
     // akey = op.itob(slot_id.native) + slot.top_hash.native
     uncover 2
     btoi
@@ -1515,7 +1571,7 @@ reward:
     box_extract
     extract 2 0
     concat
-    // src/slot_auction.py:337
+    // src/slot_auction.py:346
     // ans = self.answers[akey].copy()
     bytec_1 // "a"
     swap
@@ -1523,12 +1579,12 @@ reward:
     dup
     box_get
     assert // check self.answers entry exists
-    // src/slot_auction.py:338
+    // src/slot_auction.py:347
     // assert not ans.settled.native, "answer settled"
     dup
     intc 6 // 128
     getbit
-    bytec 5 // 0x00
+    bytec 6 // 0x00
     intc_0 // 0
     uncover 2
     setbit
@@ -1536,27 +1592,27 @@ reward:
     getbit
     !
     assert // answer settled
-    // src/slot_auction.py:339
+    // src/slot_auction.py:348
     // assert ans.total.native > UInt64(0), "no total"
     dup
     intc_0 // 0
     extract_uint64
     dup
     assert // no total
-    // src/slot_auction.py:341
+    // src/slot_auction.py:350
     // inc = pay.amount * UInt64(ACC) // ans.total.native
     dig 3
     intc 4 // 1000000
     *
     swap
     /
-    // src/slot_auction.py:342-344
+    // src/slot_auction.py:351-353
     // # dust protection: a reward too small to move the accumulator is rejected so the
     // # operator batches instead of silently losing it
     // assert inc > UInt64(0), "reward too small"
     dup
     assert // reward too small
-    // src/slot_auction.py:345
+    // src/slot_auction.py:354
     // assert ans.acc.native + inc < UInt64(MAX_ACC), "acc cap"
     swap
     intc_1 // 8
@@ -1566,16 +1622,16 @@ reward:
     pushint 4294967296
     <
     assert // acc cap
-    // src/slot_auction.py:347
+    // src/slot_auction.py:356
     // ans.acc = arc4.UInt64(ans.acc.native + inc)
     itob
-    // src/slot_auction.py:347-348
+    // src/slot_auction.py:356-357
     // ans.acc = arc4.UInt64(ans.acc.native + inc)
     // self.answers[akey] = ans.copy()
     intc_1 // 8
     swap
     box_replace // on error: index out of bounds
-    // src/slot_auction.py:349
+    // src/slot_auction.py:358
     // self.escrowed.value += pay.amount
     intc_0 // 0
     bytec_0 // "escrowed"
@@ -1585,7 +1641,7 @@ reward:
     bytec_0 // "escrowed"
     swap
     app_global_put
-    // src/slot_auction.py:319
+    // src/slot_auction.py:328
     // @arc4.abimethod
     intc_3 // 1
     return
@@ -1593,7 +1649,7 @@ reward:
 
 // slot_auction.SlotAuction.claim[routing]() -> void:
 claim:
-    // src/slot_auction.py:351
+    // src/slot_auction.py:360
     // @arc4.abimethod
     txna ApplicationArgs 1
     dup
@@ -1601,18 +1657,18 @@ claim:
     intc_1 // 8
     ==
     assert // invalid number of bytes for arc4.uint64
-    // src/slot_auction.py:358
+    // src/slot_auction.py:367
     // sid = slot_id.native
     btoi
-    // src/slot_auction.py:359
+    // src/slot_auction.py:368
     // skey = op.itob(sid) + Txn.sender.bytes
     itob
     dup
     txn Sender
     concat
-    // src/slot_auction.py:360
+    // src/slot_auction.py:369
     // assert skey in self.stakes, "no stake"
-    bytec 6 // "k"
+    bytec 7 // "k"
     swap
     concat
     dup
@@ -1621,7 +1677,7 @@ claim:
     box_len
     bury 1
     assert // no stake
-    // src/slot_auction.py:361-362
+    // src/slot_auction.py:370-371
     // st = self.stakes[skey].copy()
     // akey = op.itob(sid) + st.hash.native
     dup
@@ -1636,11 +1692,11 @@ claim:
     box_extract
     dup
     cover 3
-    // src/slot_auction.py:362
+    // src/slot_auction.py:371
     // akey = op.itob(sid) + st.hash.native
     extract 2 0
     concat
-    // src/slot_auction.py:363
+    // src/slot_auction.py:372
     // ans = self.answers[akey].copy()
     bytec_1 // "a"
     swap
@@ -1650,11 +1706,11 @@ claim:
     dup
     uncover 2
     assert // check self.answers entry exists
-    // src/slot_auction.py:364
+    // src/slot_auction.py:373
     // acc_now = ans.acc_at_settle.native if ans.settled.native else ans.acc.native
     intc 6 // 128
     getbit
-    bytec 5 // 0x00
+    bytec 6 // 0x00
     intc_0 // 0
     uncover 2
     setbit
@@ -1665,7 +1721,7 @@ claim:
     extract_uint64
 
 claim_ternary_merge@4:
-    // src/slot_auction.py:366
+    // src/slot_auction.py:375
     // owed = st.amount.native * acc_now // UInt64(ACC)
     swap
     dup
@@ -1678,7 +1734,7 @@ claim_ternary_merge@4:
     *
     intc 4 // 1000000
     /
-    // src/slot_auction.py:367
+    // src/slot_auction.py:376
     // assert owed > st.debt.native, "nothing to claim"
     dig 2
     pushint 10
@@ -1688,12 +1744,12 @@ claim_ternary_merge@4:
     dup2
     >
     assert // nothing to claim
-    // src/slot_auction.py:368
+    // src/slot_auction.py:377
     // amount = owed - st.debt.native
     dig 1
     swap
     -
-    // src/slot_auction.py:369
+    // src/slot_auction.py:378
     // self.stakes[skey] = Stake(hash=st.hash.copy(), amount=st.amount, debt=arc4.UInt64(owed))
     swap
     itob
@@ -1710,7 +1766,7 @@ claim_ternary_merge@4:
     uncover 2
     swap
     box_put
-    // src/slot_auction.py:370
+    // src/slot_auction.py:379
     // self.escrowed.value -= amount
     intc_0 // 0
     bytec_0 // "escrowed"
@@ -1721,22 +1777,22 @@ claim_ternary_merge@4:
     bytec_0 // "escrowed"
     swap
     app_global_put
-    // src/slot_auction.py:371
+    // src/slot_auction.py:380
     // self._check_solvency(amount)
     dup
     callsub _check_solvency
-    // src/slot_auction.py:372
+    // src/slot_auction.py:381
     // self._send(Txn.sender, amount)
     txn Sender
     swap
     callsub _send
-    // src/slot_auction.py:351
+    // src/slot_auction.py:360
     // @arc4.abimethod
     intc_3 // 1
     return
 
 claim_ternary_false@3:
-    // src/slot_auction.py:364
+    // src/slot_auction.py:373
     // acc_now = ans.acc_at_settle.native if ans.settled.native else ans.acc.native
     intc_1 // 8
     extract_uint64
@@ -1745,7 +1801,7 @@ claim_ternary_false@3:
 
 // slot_auction.SlotAuction.get_slot[routing]() -> void:
 get_slot:
-    // src/slot_auction.py:376
+    // src/slot_auction.py:385
     // @arc4.abimethod(readonly=True)
     txna ApplicationArgs 1
     dup
@@ -1753,14 +1809,14 @@ get_slot:
     intc_1 // 8
     ==
     assert // invalid number of bytes for arc4.uint64
-    // src/slot_auction.py:378
+    // src/slot_auction.py:387
     // return self.slots[slot_id]
-    bytec 7 // "s"
+    bytec 8 // "s"
     swap
     concat
     box_get
     assert // check self.slots entry exists
-    // src/slot_auction.py:376
+    // src/slot_auction.py:385
     // @arc4.abimethod(readonly=True)
     bytec 9 // 0x151f7c75
     swap
@@ -1772,7 +1828,7 @@ get_slot:
 
 // slot_auction.SlotAuction.get_answer[routing]() -> void:
 get_answer:
-    // src/slot_auction.py:380
+    // src/slot_auction.py:389
     // @arc4.abimethod(readonly=True)
     txna ApplicationArgs 1
     dup
@@ -1790,7 +1846,7 @@ get_answer:
     len
     ==
     assert // invalid number of bytes for arc4.dynamic_array<arc4.uint8>
-    // src/slot_auction.py:382
+    // src/slot_auction.py:391
     // return self.answers[op.itob(slot_id.native) + content_hash.native]
     swap
     btoi
@@ -1803,7 +1859,7 @@ get_answer:
     concat
     box_get
     assert // check self.answers entry exists
-    // src/slot_auction.py:380
+    // src/slot_auction.py:389
     // @arc4.abimethod(readonly=True)
     bytec 9 // 0x151f7c75
     swap
@@ -1815,7 +1871,7 @@ get_answer:
 
 // slot_auction.SlotAuction.get_stake[routing]() -> void:
 get_stake:
-    // src/slot_auction.py:384
+    // src/slot_auction.py:393
     // @arc4.abimethod(readonly=True)
     txna ApplicationArgs 1
     dup
@@ -1829,19 +1885,19 @@ get_stake:
     pushint 32
     ==
     assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
-    // src/slot_auction.py:386
+    // src/slot_auction.py:395
     // return self.stakes[op.itob(slot_id.native) + who.native.bytes]
     swap
     btoi
     itob
     swap
     concat
-    bytec 6 // "k"
+    bytec 7 // "k"
     swap
     concat
     box_get
     assert // check self.stakes entry exists
-    // src/slot_auction.py:384
+    // src/slot_auction.py:393
     // @arc4.abimethod(readonly=True)
     bytec 9 // 0x151f7c75
     swap
@@ -1853,13 +1909,13 @@ get_stake:
 
 // slot_auction.SlotAuction.escrow_total[routing]() -> void:
 escrow_total:
-    // src/slot_auction.py:390
+    // src/slot_auction.py:399
     // return self.escrowed.value
     intc_0 // 0
     bytec_0 // "escrowed"
     app_global_get_ex
     assert // check self.escrowed exists
-    // src/slot_auction.py:388
+    // src/slot_auction.py:397
     // @arc4.abimethod(readonly=True)
     itob
     bytec 9 // 0x151f7c75
@@ -1872,10 +1928,10 @@ escrow_total:
 
 // slot_auction.SlotAuction._check_solvency(total_out: uint64) -> void:
 _check_solvency:
-    // src/slot_auction.py:394
+    // src/slot_auction.py:403
     // def _check_solvency(self, total_out: UInt64) -> None:
     proto 1 0
-    // src/slot_auction.py:395
+    // src/slot_auction.py:404
     // assert op.balance(Global.current_application_address) >= total_out + self.escrowed.value, "solvency"
     global CurrentApplicationAddress
     balance
@@ -1892,14 +1948,14 @@ _check_solvency:
 
 // slot_auction.SlotAuction._send(to: bytes, amount: uint64) -> void:
 _send:
-    // src/slot_auction.py:397
+    // src/slot_auction.py:406
     // def _send(self, to: Account, amount: UInt64) -> None:
     proto 2 0
-    // src/slot_auction.py:398
+    // src/slot_auction.py:407
     // if amount > UInt64(0):
     frame_dig -1
     bz _send_after_if_else@3
-    // src/slot_auction.py:399
+    // src/slot_auction.py:408
     // itxn.Payment(receiver=to, amount=amount, fee=UInt64(0)).submit()
     itxn_begin
     frame_dig -1

@@ -308,7 +308,16 @@ class SlotAuction(ARC4Contract):
                 slot.second_hash = arc4.DynamicBytes()
                 slot.second_total = arc4.UInt64(0)
                 slot.epoch = arc4.UInt64(slot.epoch.native + UInt64(1))
-            self.slots[slot_id] = slot.copy()
+        elif slot.second_total.native > UInt64(0) and slot.second_hash.native == h:
+            # leaving the challenger has to move the cached total with it: the slot box is the
+            # only memory of who is next, and a total left behind here is later promoted as a
+            # top that no answer backs, so the next displacement charges a fee on nothing
+            if amount >= slot.second_total.native:
+                slot.second_hash = arc4.DynamicBytes()
+                slot.second_total = arc4.UInt64(0)
+            else:
+                slot.second_total = arc4.UInt64(slot.second_total.native - amount)
+        self.slots[slot_id] = slot.copy()
 
         self._send(Txn.sender, refund + claim)
         if fee > UInt64(0):
