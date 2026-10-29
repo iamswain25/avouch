@@ -1,0 +1,38 @@
+README.md
+  h_247fbbde292880 18
+content/en/whitepaper.md
+  h_247fbbde292880 3,13,127,328
+content/ko/whitepaper.md
+  h_247fbbde292880 3,15,167,187,425,504-505
+scripts/seed_localnet.py
+  h_247fbbde292880 48-49,52
+site/.well-known/agent.json
+  h_247fbbde292880 47
+site/.well-known/exact-algo.json
+  h_247fbbde292880 90
+site/en/agents.html
+  h_247fbbde292880 46
+site/en/index.html
+  h_247fbbde292880 284,296
+site/en/whitepaper.html
+  h_247fbbde292880 44,51,234,622
+site/ko/agents.html
+  h_247fbbde292880 46
+site/ko/index.html
+  h_247fbbde292880 283,295
+site/ko/whitepaper.html
+  h_247fbbde292880 44,52,338,350,790,888-889
+site/llms.txt
+  h_247fbbde292880 14-15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9a3e31fc69bc9675584159c39dcb330ca2b5d014",
+  "prompts": {},
+  "humans": {
+    "h_247fbbde292880": {
+      "author": "swain <iamswain@hotmail.com>"
+    }
+  }
+}
